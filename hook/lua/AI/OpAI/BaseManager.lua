@@ -221,9 +221,6 @@ BaseManager = Class(BaseManagerTemplate)
                 if not unit:HasEnhancement(upgradeName) then
 					-- If we already have an enhancement at the desired slot, check if it's a prerequisite first
 					if SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
-						LOG('Unit has: ' .. repr(SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot]))
-						LOG('Unit requires: ' .. repr(bpUpgrade.Prerequisite))
-						LOG('Unit wants: ' .. repr(upgradeName))
 						-- If it's the prerequisite enhancement, return upgrade name
 						if bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
 							return upgradeName
