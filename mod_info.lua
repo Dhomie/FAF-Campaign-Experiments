@@ -1,0 +1,11 @@
+name = "Coop AI Adjustments"
+version = 1
+copyright = ""
+description = "Initial test mod for coop AI fixes/modifications."
+author = "Dhomie"
+url = ""
+uid = "coop_ai_mod_v3"
+exclusive = false
+ui_only = false
+conflicts = {}
+requires = {}
