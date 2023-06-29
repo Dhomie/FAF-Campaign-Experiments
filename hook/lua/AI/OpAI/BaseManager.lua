@@ -195,12 +195,8 @@ BaseManager = Class(BaseManagerTemplate)
             return false
         end
 		
-		-- A brief explanation what's exactly being done here after finding out what caused this to remove any prerequisite enhancements:
-			-- First we loop through each desired enhancement we want the unit to create
-			-- We check the unit's blueprint for its enhancement data, and use that to determine what enhancement it already has, and what it doesn't
-			-- First, we check if this requires any prerequisites, and create that enhancement first (example: 'AdvancedEngineering' --> 'T3Engineering'), and create the prerequisite first
-
-			-- The next check was what caused issues previously, it checks if there's already an upgrade on the slot our wanted enhancement wants to occupy	
+		-- A brief explanation on what was messed up with this previously that messed up enhancements with prerequisites
+			-- The first check is was what caused issues previously, it checks if there's already an upgrade on the slot our wanted enhancement wants to occupy	
 			-- "SimUnitEnhancements" is a global table that's created in "lua/SimSync.lua", and stores unit enhancements using the following data structure:
 			-- SimUnitEnhancements[unit.EntityId], an example of this:
 			--------------------------------
@@ -223,18 +219,18 @@ BaseManager = Class(BaseManagerTemplate)
             local bpUpgrade = allEnhancements[upgradeName]
             if bpUpgrade then
                 if not unit:HasEnhancement(upgradeName) then
-					-- Check for required upgrades first
-					if bpUpgrade.Prerequisite and not unit:HasEnhancement(bpUpgrade.Prerequisite) then
-                        return bpUpgrade.Prerequisite
-                    -- If we already have upgrade at that slot, check if it's a prerequisite
-                    elseif SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
-						--Remove the enhancement is if it's not a prerequisite
-						if not bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] ~= bpUpgrade.Prerequisite) then
-							return SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] .. 'Remove'
-						--Otherwise we have the prerequisite, return upgrade name
-						else
+					-- If we already have an enhancement at the desired slot, check if it's a prerequisite first
+					if SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
+						-- If it's the prerequisite enhancement, return upgrade name
+						if bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
 							return upgradeName
+						-- Remove the enhancement, it's not a prerequisite
+						else
+							return SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] .. 'Remove'
 						end
+					-- Check for required upgrades
+					elseif bpUpgrade.Prerequisite and not unit:HasEnhancement(bpUpgrade.Prerequisite) then
+                        return bpUpgrade.Prerequisite
                     -- No requirement and stop available, return upgrade name
                     else
                         return upgradeName
@@ -256,8 +252,7 @@ BaseManager = Class(BaseManagerTemplate)
                 for k, v in self.UpgradeTable do
                     local unit = ScenarioInfo.UnitNames[armyIndex][v.UnitName]
                     if unit and not unit.Dead then
-						--Dhomie: Structure upgrading should take priority, so the check for unit.UnitBeingBuilt is not needed. This check is a lot more reliable to get factories to upgrade
-							--if unit.UnitId ~= v.FinalUnit and (unit:IsIdleState() or unit:IsUnitState('AssistingCommander') or not unit.UnitBeingBuilt) and not unit:IsBeingBuilt() then
+						--Structure upgrading should take priority, so the check for unit.UnitBeingBuilt is not needed. This check is a lot more reliable to get factories to upgrade
 						if unit.UnitId ~= v.FinalUnit and not unit:IsBeingBuilt() and not unit:IsUnitState('Upgrading') then
                             self:ForkThread(self.BaseManagerUpgrade, unit, v.UnitName)
                         end
@@ -362,25 +357,5 @@ BaseManager = Class(BaseManagerTemplate)
         end
     end,
 }
-
---- Prepares a base manager, note that you still need to call one of the Start functions
----@param brain AIBrain
----@param baseName string
----@param markerName Marker
----@param radius number
----@param levelTable any
----@return BaseManager
-function CreateBaseManager(brain, baseName, markerName, radius, levelTable)
-
-    ---@type BaseManager
-    local bManager = BaseManager()
-    bManager:Create()
-
-    if brain and baseName and markerName and radius then
-        bManager:Initialize(brain, baseName, markerName, radius, levelTable)
-    end
-
-    return bManager
-end
 
 

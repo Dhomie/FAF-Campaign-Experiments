@@ -1,10 +1,12 @@
 name = "Coop AI Adjustments"
-version = 1
-copyright = ""
-description = "Initial test mod for coop AI fixes/modifications."
-author = "Dhomie"
-url = ""
 uid = "coop_ai_mod_v3"
+version = 3
+copyright = "MIT License"
+description = "Initial test mod for coop AI fixes/modifications."
+icon = ""
+author = "Dhomie"
+selectable = true
+enabled = true
 exclusive = false
 ui_only = false
 conflicts = {}

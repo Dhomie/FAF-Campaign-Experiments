@@ -129,24 +129,5 @@ function MapLessThan(aiBrain, sizeX, sizeZ)
 	return mapSizeX < sizeX and mapSizeZ < sizeZ
 end
 
---- Buildcondition to check pathing to current enemy 
---- Note this requires the CanPathToCurrentEnemy thread to be running
----@param aiBrain AIBrain
----@param locationType string
----@param pathType string
----@return boolean
-function PathToEnemy(aiBrain, locationType, pathType)
-    local currentEnemy = aiBrain:GetCurrentEnemy()
-    if not currentEnemy then
-        return true
-    end
-    local enemyIndex = aiBrain:GetCurrentEnemy():GetArmyIndex()
-    local selfIndex = aiBrain:GetArmyIndex()
-    if aiBrain.CanPathToEnemy[selfIndex][enemyIndex][locationType] == pathType then
-        return true
-    end
-    return false
-end
-
 -- unused imports kept for mod support
 local Utils = import("/lua/utilities.lua")
