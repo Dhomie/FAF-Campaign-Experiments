@@ -46,7 +46,7 @@ function BaseManagerEngineerPlatoonSplit(platoon)
 
                     -- Only add death callback if it hasnt been set yet
                     if not v.Subtracted then
-                        TriggerFile.CreateUnitDeathTrigger(BaseManagerSingleDestroyed, v)
+                        TriggerFile.CreateUnitDestroyedTrigger(BaseManagerSingleDestroyed, v)
                     end
 
                     -- If the base is building engineers, subtract one from the amount being built
@@ -58,25 +58,6 @@ function BaseManagerEngineerPlatoonSplit(platoon)
         end
     end
     aiBrain:DisbandPlatoon(platoon)
-end
-
---- Death callback when units die to decrease counter
----@param unit Unit
-function BaseManagerSingleDestroyed(unit)
-    if not unit.Subtracted then
-        unit.Subtracted = true
-        local aiBrain = unit:GetAIBrain()
-        local bManager = aiBrain.BaseManagers[unit.BaseName]
-        bManager:SubtractCurrentEngineer()
-    end
-end
-
---- Callback when unit is removed from base manager
----@param unit Unit
-function BaseManagerSingleRemoved(unit)
-    local aiBrain = unit:GetAIBrain()
-    local bManager = aiBrain.BaseManagers[unit.BaseName]
-    bManager:SubtractCurrentEngineer()
 end
 
 --- Main function for base manager engineers
@@ -108,7 +89,7 @@ function BaseManagerSingleEngineerPlatoon(platoon)
             -- Try to build buildings
             elseif BMBC.NeedAnyStructure(aiBrain, baseName) and bManager:GetConstructionEngineerCount() < bManager:GetConstructionEngineerMaximum() then
                 bManager:AddConstructionEngineer(unit)
-                TriggerFile.CreateUnitDeathTrigger(ConstructionUnitDeath, unit)
+                TriggerFile.CreateUnitDestroyedTrigger(ConstructionUnitDeath, unit)
                 BaseManagerEngineerThread(platoon)
                 bManager:RemoveConstructionEngineer(unit)
 
@@ -240,38 +221,6 @@ function CanConditionalBuild(singleEngineerPlatoon)
     return true
 end
 
---- Called when a unit helping on a conditional build bites it
----@param engineer Unit
-function ConditionalBuilderDead(engineer)
-    local aiBrain = engineer:GetAIBrain()
-    local bManager = aiBrain.BaseManagers[engineer.BaseName]
-
-    bManager.ConditionalBuildData.DecrementAssisting()
-end
-
----@param conditionalUnit any
-function ConditionalBuildDied(conditionalUnit)
-    local aiBrain = conditionalUnit:GetAIBrain()
-    local bManager = aiBrain.BaseManagers[conditionalUnit.BaseName]
-    local selectedBuild = conditionalUnit.ConditionalBuild
-
-    -- Reinsert the conditional build (for one of these units)
-    table.insert(bManager.ConditionalBuildTable, {
-        name = selectedBuild.name,
-        data =  {
-            MaxAssist = selectedBuild.data.MaxAssist,
-            BuildCondition = selectedBuild.data.BuildCondition,
-            PlatoonAIFunction = selectedBuild.data.PlatoonAIFunction,
-            PlatoonData = selectedBuild.data.PlatoonData,
-            Retry = selectedBuild.data.Retry,
-            KeepAlive = true,
-            Amount = 1,
-            WaitSecondsAfterDeath = selectedBuild.data.WaitSecondsAfterDeath,
-        },
-    })
-
-end
-
 ---@param conditionalUnit any
 function ConditionalBuildSuccessful(conditionalUnit)
     local aiBrain = conditionalUnit:GetAIBrain()
@@ -297,7 +246,7 @@ function ConditionalBuildSuccessful(conditionalUnit)
         local waitTime = bManager.ConditionalBuildData.WaitSecondsAfterDeath
 
         -- Register death callback
-        TriggerFile.CreateUnitDeathTrigger(function(unit)
+        TriggerFile.CreateUnitDestroyedTrigger(function(unit)
             ForkThread(function()
                 WaitSeconds(waitTime)
                 ScenarioInfo.ConditionalBuildLocks[selectedBuild.name] = false
@@ -329,7 +278,6 @@ end
 function AssistConditionalBuild(singleEngineerPlatoon)
     local aiBrain = singleEngineerPlatoon:GetBrain()
     local baseName = singleEngineerPlatoon.PlatoonData.BaseName
-	
     local bManager = aiBrain.BaseManagers[baseName]
     local engineer = singleEngineerPlatoon:GetPlatoonUnits()[1]
     engineer.BaseName = baseName
@@ -338,7 +286,7 @@ function AssistConditionalBuild(singleEngineerPlatoon)
     local buildIndex = bManager.ConditionalBuildData.Index
 
     -- Register death callback
-    TriggerFile.CreateUnitDeathTrigger(ConditionalBuilderDead, engineer)
+    TriggerFile.CreateUnitDestroyedTrigger(ConditionalBuilderDead, engineer)
 
     -- Increment number of units assisting
     bManager.ConditionalBuildData.IncrementAssisting()
@@ -393,7 +341,7 @@ function DoConditionalBuild(singleEngineerPlatoon)
     bManager.ConditionalBuildData.WaitSecondsAfterDeath = selectedBuild.data.WaitSecondsAfterDeath or false
 
     -- Register death callback
-    TriggerFile.CreateUnitDeathTrigger(ConditionalBuilderDead, engineer)
+    TriggerFile.CreateUnitDestroyedTrigger(ConditionalBuilderDead, engineer)
 
     -- Issue build orders
     IssueClearCommands({engineer})
@@ -416,7 +364,7 @@ function DoConditionalBuild(singleEngineerPlatoon)
                     unitInstance.ConditionalBuildData = bManager.ConditionalBuildData
 
                     -- register rebuild callback
-                    TriggerFile.CreateUnitDeathTrigger(ConditionalBuildDied, unitInstance)
+                    TriggerFile.CreateUnitDestroyedTrigger(ConditionalBuildDied, unitInstance)
                 end
 
                 -- Tell the unit the name of this base manager
@@ -440,68 +388,13 @@ function DoConditionalBuild(singleEngineerPlatoon)
 end
 
 ---@param platoon Platoon
-function BaseManagerEngineerPatrol(platoon)
-    local aiBrain = platoon:GetBrain()
-    local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
-    local chain = bManager:GetDefaultEngineerPatrolChain()
-
-    -- Use the default chain or generate random one from factories
-    if chain then
-        platoon.PlatoonData.PatrolChain = chain
-        ScenarioPlatoonAI.PatrolThread(platoon)
-    else
-        BaseManagerPatrolLocationFactoriesAI(platoon)
-    end
-end
-
----@param platoon Platoon
-function BaseManagerPatrolLocationFactoriesAI(platoon)
-    local aiBrain = platoon:GetBrain()
-    local baseName = platoon.PlatoonData.BaseName
-    local bManager = aiBrain.BaseManagers[baseName]
-
-    local factories = aiBrain:PBMGetAllFactories(baseName)
-    if not factories then
-        return
-    end
-
-    local posTable = {}
-    for _, fac in factories do
-        if not fac.Dead then
-            table.insert(posTable, fac:GetPosition())
-        end
-    end
-
-    platoon:Stop()
-
-    local i = 1
-    while i <= table.getn(posTable) do
-        local facNum = Random(1, table.getn(posTable))
-        local movePos = posTable[facNum]
-        movePos[3] = movePos[3] + 5
-
-        platoon:Patrol(movePos)
-
-        table.remove(posTable, facNum)
-    end
-end
-
---- When a unit that was constructing dies
----@param unit Unit
-function ConstructionUnitDeath(unit)
-    local aiBrain = unit:GetAIBrain()
-    local bManager = aiBrain.BaseManagers[unit.BaseName]
-    bManager:RemoveConstructionEngineer(unit)
-end
-
----@param platoon Platoon
 function PermanentFactoryAssist(platoon)
     local aiBrain = platoon:GetBrain()
     local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
     local assistFac = false
     local unit = platoon:GetPlatoonUnits()[1]
 
-    TriggerFile.CreateUnitDeathTrigger(PermanentAssisterDead, unit)
+    TriggerFile.CreateUnitDestroyedTrigger(PermanentAssisterDead, unit)
     while aiBrain:PlatoonExists(platoon) do
         -- Get all factories in the base manager
         local facs = bManager:GetAllBaseFactories()
@@ -538,19 +431,6 @@ function PermanentFactoryAssist(platoon)
             bManager.PermanentAssisters[unit] = true
         end
         WaitTicks(Random(80, 180))
-    end
-end
-
----@param unit Unit
-function PermanentAssisterDead(unit)
-	local aiBrain = unit:GetAIBrain()
-    local bManager = aiBrain.BaseManagers[unit.BaseName]
-	
-    if bManager then
-        bManager:DecrementPermanentAssisting()
-
-        -- Remove from permanent assister list
-        bManager.PermanentAssisters[unit] = nil
     end
 end
 
@@ -672,80 +552,11 @@ function BaseManagerAssistThread(platoon)
     end
 end
 
---- New base expansion
----@param platoon Platoon
-function ExpansionEngineer(platoon)
-    platoon:Stop()
-
-    local unitCount = table.getn(platoon:GetPlatoonUnits())
-    local aiBrain = platoon:GetBrain()
-    local data = platoon.PlatoonData
-
-    if not (data.BaseName and aiBrain.BaseManagers[data.BaseName] and aiBrain.BaseManagers[data.BaseName].ExpansionBaseData) then
-        aiBrain:DisbandPlatoon(platoon)
-        return
-    end
-
-    local bManager = aiBrain.BaseManagers[data.BaseName]
-    local cmd = false
-    for num, eData in bManager.ExpansionBaseData do
-        -- Find out what expansion base needs engineers
-        if BMBC.NumEngiesInExpansionBase(aiBrain, data.BaseName, eData.BaseName) then
-            if data.ExpansionBase ~= eData.BaseName then
-                data.ExpansionBase = eData.BaseName
-            end
-
-            -- Tracks engineers that are on the way to the expansion base
-            eData.IncomingEngineers = eData.IncomingEngineers + unitCount
-
-            -- Remove engieneer from IncomingEngineers if it dies on the way
-            platoon:AddDestroyCallback(ExpansionPlatoonDestroyed)
-
-            if eData.TransportPlatoon or VDist3(platoon:GetPlatoonPosition(), aiBrain.BaseManagers[eData.BaseName]:GetPosition()) > 250 then
-                cmd = TransportUnitsToLocation(platoon, aiBrain.BaseManagers[eData.BaseName]:GetPosition())
-            end
-
-            if not cmd then
-                cmd = platoon:MoveToLocation(aiBrain.BaseManagers[eData.BaseName]:GetPosition(), false)
-            end
-            break
-        end
-    end
-    WaitSeconds(2)
-
-    if not aiBrain:PlatoonExists(platoon) then
-        return
-    end
-
-    if cmd and type(cmd) ~= 'boolean' then
-        while platoon:IsCommandsActive(cmd) do
-            WaitSeconds(5)
-            if not aiBrain:PlatoonExists(platoon) then
-                return
-            end
-        end
-    end
-
-    for num, eData in bManager.ExpansionBaseData do
-        if eData.BaseName == data.ExpansionBase then
-            eData.IncomingEngineers = eData.IncomingEngineers - 1
-        end
-    end
-
-    if aiBrain:PlatoonExists(platoon) then
-        local unit = platoon:GetPlatoonUnits()[1]
-        BaseManagerSingleRemoved(unit)
-        platoon:RemoveDestroyCallback(ExpansionPlatoonDestroyed)
-        aiBrain:DisbandPlatoon(platoon)
-    end
-end
-
 ---@param brain AIBrain
 ---@param platoon Platoon
 function ExpansionPlatoonDestroyed(brain, platoon)
     local aiBrain = platoon:GetBrain()
     local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
-    local eBaseName = false
 
     for num, eData in bManager.ExpansionBaseData do
         if eData.BaseName == platoon.PlatoonData.ExpansionBase then
@@ -802,13 +613,6 @@ function BaseManagerEngineerThread(platoon)
 
     if not platoon.PlatoonData.BaseName or not aiBrain.BaseManagers[platoon.PlatoonData.BaseName] then
         error('*AI DEBUG: Missing Base Name or invalid base name for base manager engineer thread', 2)
-    end
-
-    local structurePriTable
-    if not platoon.PlatoonData.StructurePriorities then
-        structurePriTable = { 'ALLUNITS' }
-    else
-        structurePriTable = platoon.PlatoonData.StructurePriorities
     end
 
     -- If there is a construction block use the stuff from here
@@ -885,236 +689,10 @@ function BaseManagerEngineerThread(platoon)
     platoon:MoveToLocation(tempPos, false)
 end
 
---- Guts of the build thing
----@param aiBrain AIBrain
----@param eng Unit
----@param baseManager BaseManager
----@param levelName string
----@param buildingType string
----@param platoon Platoon
----@return boolean
----@return boolean
-function BuildBaseManagerStructure(aiBrain, eng, baseManager, levelName, buildingType, platoon)
-    local buildTemplate = aiBrain.BaseTemplates[baseManager.BaseName .. levelName].Template
-    local buildList = aiBrain.BaseTemplates[baseManager.BaseName .. levelName].List
-
-    if not buildTemplate or not buildList then
-        return false
-    end
-
-    local namesTable = aiBrain.BaseTemplates[baseManager.BaseName .. levelName].UnitNames
-    local buildCounter = aiBrain.BaseTemplates[baseManager.BaseName .. levelName].BuildCounter
-    for K, v in buildTemplate do
-        -- Check if type (ex. T1AirFactory) is correct
-        if (not buildingType or buildingType == 'ALLUNITS' or buildingType == v[1][1]) and baseManager:CheckStructureBuildable(v[1][1]) then
-            local category
-            for catName, catData in buildList do
-                if catData.StructureType == v[1][1] then
-                    category = catData.StructureCategory
-                    break
-                end
-            end
-            if category and eng:CanBuild(category) then
-                local engineerPos = eng:GetPosition()
-                local closest = false
-                -- Iterate through build locations
-                for num, location in v do
-                    -- Check if it can be built and then build
-                    if num > 1 and aiBrain:CanBuildStructureAt(category, {location[1], 0, location[2]}) and baseManager:CheckUnitBuildCounter(location, buildCounter) then
-                        if not closest or VDist2(location[1], location[3], engineerPos[1], engineerPos[3]) < VDist2(closest[1], closest[3], engineerPos[1], engineerPos[3]) then
-                            closest = location
-                        end
-                    end
-                end
-
-                if closest then
-                    -- Removed transport call as the pathing check was creating problems with base manager rebuilding
-                    -- TODO: develop system where base managers more easily rebuild in far away or hard to reach locations
-                    -- and TransportUnitsToLocation(platoon, {closest[1], 0, closest[2]}) then
-                    IssueClearCommands({eng})
-                    aiBrain:BuildStructure(eng, category, closest, false)
-
-                    local unitName = false
-                    if namesTable[closest[1]][closest[2]] then
-                        unitName = namesTable[closest[1]][closest[2]]
-                    end
-
-                    return true, unitName
-                end
-            end
-        end
-    end
-    return false
-end
-
---- Finish building structures that werent finshed
----@param platoon Platoon
-function BuildUnfinishedStructures(platoon)
-    platoon:Stop()
-
-    local aiBrain = platoon:GetBrain()
-    local platoonUnits = platoon:GetPlatoonUnits()
-    local armyIndex = aiBrain:GetArmyIndex()
-    local eng = platoonUnits[1]
-    local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
-
-    if not eng or eng.Dead then
-        aiBrain:DisbandPlatoon(platoon)
-        return
-    end
-
-    -- Otherwise help build whatever needs us
-    local unfinishedBuildings = false
-    repeat
-        unfinishedBuildings = false
-        local beingBuiltList = {}
-        local buildingEngs = aiBrain:GetListOfUnits(categories.ENGINEER, false)
-        -- Find all engineers building structures
-        for k, v in buildingEngs do
-            local buildingUnit = v.UnitBeingBuilt
-            if buildingUnit and buildingUnit.UnitName then
-                beingBuiltList[buildingUnit.UnitName] = true
-            end
-        end
-        -- Check all unfinished buildings to see if they need someone workin on them
-        for unitName, _ in bManager.UnfinishedBuildings do
-            if ScenarioInfo.UnitNames[armyIndex][unitName] and not ScenarioInfo.UnitNames[armyIndex][unitName].Dead then
-                if not beingBuiltList[unitName] then
-                    unfinishedBuildings = true
-                    IssueClearCommands({eng})
-                    IssueRepair({eng}, ScenarioInfo.UnitNames[armyIndex][unitName])
-                    repeat
-                        WaitSeconds(3)
-                        if not aiBrain:PlatoonExists(platoon) then
-                            return
-                        end
-                    until eng:IsIdleState()
-                    bManager.UnfinishedBuildings[unitName] = nil
-                end
-            end
-        end
-    until not unfinishedBuildings
-end
-
----@param platoon Platoon
-function PlatoonSetTargetPriorities(platoon)
-    if platoon.PlatoonData.CategoryPriorities then
-        -- Get the list of units in the platoon
-        local units = platoon:GetPlatoonUnits()
-
-        -- For each unit, if they match any of the categories, assign the corresponding priorities
-        for kCategory, vPriority in platoon.PlatoonData.CategoryPriorities do
-            for iUnit, vUnit in units do
-                if EntityCategoryContains(kCategory, vUnit) then
-                    vUnit:SetTargetPriorities(vPriority)
-                end
-            end
-        end
-    else
-        local priList = {}
-        for k, v in platoon.PlatoonData.TargetPriorities do
-            table.insert(priList, ParseEntityCategory(v))
-        end
-
-        local squads = { 'attack', 'support', 'scout', 'artillery' }
-        for k, v in squads do
-            platoon:SetPrioritizedTargetList(v, priList)
-        end
-    end
-end
-
----@param bManager BaseManager
----@param unit Unit
----@return Vector[]
-function GetScoutingPath(bManager, unit)
-    local mapInfo = {}
-    if not ScenarioInfo.MapData.PlayableRect then
-        mapInfo[1] = 0
-        mapInfo[2] = 0
-        mapInfo[3] = ScenarioInfo.size[1]
-        mapInfo[4] = ScenarioInfo.size[2]
-    else
-        mapInfo = ScenarioInfo.MapData.PlayableRect
-    end
-
-    local pathablePoints = {}
-    local possiblePoints = {}
-    if EntityCategoryContains(categories.AIR, unit) and bManager:GetDefaultAirScoutPatrolChain() then
-        -- Do air thing
-        pathablePoints = ScenarioUtils.ChainToPositions(bManager:GetDefaultAirScoutPatrolChain())
-    elseif EntityCategoryContains(categories.LAND, unit) and bManager:GetDefaultLandScoutPatrolChain() then
-        -- Do land thing
-        pathablePoints = ScenarioUtils.ChainToPositions(bManager:GetDefaultLandScoutPatrolChain())
-    else
-        local startX = mapInfo[1]
-        local startY = mapInfo[2]
-        local currX = startX
-        -- Create a table of possible points by increasing x and y vals
-        while currX < mapInfo[3] do
-            local currY = startY
-            while currY < mapInfo[4] do
-                local useY = currY
-                local useX = currX
-                -- Check if the coords are the map boundaries and move them in if they are
-                if currX == mapInfo[1] then
-                    useX = currX + 8
-                end
-                if currY == mapInfo[2] then
-                    useY = currY + 8
-                end
-                if currX == mapInfo[3] then
-                    useX = currX - 8
-                end
-                if currY == mapInfo[4] then
-                    useY = currY - 8
-                end
-                table.insert(possiblePoints, { useX, 0, useY })
-                currY = currY + 48
-            end
-            currX = currX + 48
-        end
-        -- Determine which poitnts the unit can actually path to
-        for k, v in possiblePoints do
-            if AIUtils.CheckUnitPathingEx(v, unit:GetPosition(), unit) then
-                table.insert(pathablePoints, v)
-            end
-        end
-    end
-    return pathablePoints
-end
-
----@param platoon Platoon
-function BaseManagerScoutingAI(platoon)
-    local aiBrain = platoon:GetBrain()
-    local unit = platoon:GetPlatoonUnits()[1]
-    local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
-
-    -- Set up move orders to up to 10 points
-    while aiBrain:PlatoonExists(platoon) do
-        -- Get new points every time so if the area changes we are on it
-        local pathablePoints = GetScoutingPath(bManager, unit)
-        local numPoints = table.getn(pathablePoints)
-        if numPoints > 0 then
-            platoon:Stop()
-        end
-
-        local count = 0
-        if numPoints > 0 then
-            while count < 10 do
-                local pickNum = Random(1, numPoints)
-                platoon:MoveToLocation(pathablePoints[pickNum], false)
-                count = count + 1
-            end
-        end
-        WaitSeconds(35)
-    end
-end
-
 ---@param platoon Platoon
 function BaseManagerTMLAI(platoon)
     local aiBrain = platoon:GetBrain()
-    local pData = platoon.PlatoonData
-    local baseName = pData.BaseName
+	local baseName = platoon.PlatoonData.BaseName
     local bManager = aiBrain.BaseManagers[baseName]
     local unit = platoon:GetPlatoonUnits()[1]
     unit.BaseName = baseName
@@ -1122,10 +700,7 @@ function BaseManagerTMLAI(platoon)
     if not unit then return end
 
     platoon:Stop()
-    local bp = unit:GetBlueprint()
-    local weapon = bp.Weapon[1]
-    local maxRadius = weapon.MaxRadius
-    local minRadius = weapon.MinRadius
+	local maxRadius = unit:GetBlueprint().Weapon[1].MaxRadius
 
     local simpleTargetting = true
     if ScenarioInfo.Options.Difficulty == 3 then
@@ -1182,11 +757,6 @@ function BaseManagerNukeAI(platoon)
 end
 
 ---@param platoon Platoon
-function AMUnlockBuildTimer(platoon)
-    ForkThread(AMPlatoonHelperFunctions.UnlockTimer, platoon.PlatoonData.LockTimer, platoon.PlatoonData.PlatoonName)
-end
-
----@param platoon Platoon
 function AMUnlockRatio(platoon)
     local count = 0
     for k, v in platoon:GetPlatoonUnits() do
@@ -1207,7 +777,7 @@ function AMUnlockRatio(platoon)
     for _, v in platoon:GetPlatoonUnits() do
         if not v.Dead then
             v.PlatoonHandle = platoon
-            TriggerFile.CreateUnitDeathTrigger(callback, v)
+            TriggerFile.CreateUnitDestroyedTrigger(callback, v)
         end
     end
 end
@@ -1233,92 +803,8 @@ function AMUnlockRatioTimer(platoon)
     for _, v in platoon:GetPlatoonUnits() do
         if not v.Dead then
             v.PlatoonHandle = platoon
-            v:AddOnKilledCallback(callback)
-            TriggerFile.CreateUnitDeathTrigger(callback, v)
+            TriggerFile.CreateUnitDestroyedTrigger(callback, v)
         end
-    end
-end
-
----@param aiBrain AIBrain
----@param location Vector
----@return any
-function ClosestPBMLocation(aiBrain, location)
-    local closest, distance
-    for _, v in aiBrain.PBM.Locations do
-        if not closest then
-            closest = v
-            distance = VDist3(location, v.Location)
-        elseif VDist3(location, v.Location) < distance then
-            closest = v
-            distance = VDist3(location, v.Location)
-        end
-    end
-
-    return closest
-end
-
----@param platoon Platoon
-function UnitUpgradeBehavior(platoon)
-    local unit = platoon:GetPlatoonUnits()[1]
-    if not unit.UpgradeThread then
-        if platoon.PlatoonData and not unit.CDRData then
-            unit.CDRData = platoon.PlatoonData
-        end
-        unit.UpgradeThread = unit:ForkThread(UnitUpgradeThread)
-    end
-end
-
----@param unit Unit
-function UnitUpgradeThread(unit)
-    local aiBrain = unit:GetAIBrain()
-    local bManager = false
-
-    if unit.CDRData.BaseName and aiBrain.BaseManagers[unit.CDRData.BaseName] then
-        bManager = aiBrain.BaseManagers[unit.CDRData.BaseName]
-    end
-
-    -- Determine the type of unit
-    local unitType = false
-    if EntityCategoryContains(categories.COMMAND, unit) then
-        unitType = 'DefaultACU'
-    elseif EntityCategoryContains(categories.SUBCOMMANDER, unit) then
-        unitType = 'DefaultSACU'
-    end
-
-    while not unit.Dead do
-        if not bManager then
-            bManager = aiBrain.BaseManagers[unit.PlatoonData.BaseName]
-        end
-        if bManager then
-            local upgradeName = bManager:UnitNeedsUpgrade(unit, unitType)
-
-            if upgradeName and not unit:IsUnitState('Building') then
-                -- Remove the unit from the builders list
-                if bManager:IsConstructionUnit(unit) then
-                    bManager:RemoveConstructionEngineer(unit)
-                end
-
-                local platoon = aiBrain:MakePlatoon('', '')
-                aiBrain:AssignUnitsToPlatoon(platoon, {unit}, 'support', 'none')
-
-                local order = {
-                    TaskName = "EnhanceTask",
-                    Enhancement = upgradeName
-                }
-                IssueStop({unit})
-                IssueClearCommands({unit})
-                IssueScript({unit}, order)
-
-                repeat
-                    WaitSeconds(3)
-                    if unit.Dead then
-                        return
-                    end
-                until unit:IsIdleState()
-                aiBrain:DisbandPlatoon(platoon)
-            end
-        end
-        WaitSeconds(5)
     end
 end
 

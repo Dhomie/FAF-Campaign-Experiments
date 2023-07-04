@@ -1,11 +1,8 @@
 --------------------------------------------------------------------------
---
---  File     :  mods/Coop_AI_Mod/hook/lua/platoon.lua
---  Author(s): Dhomie42
---
--- 	Summary  : Modifications for some of the platoon AI fuctions for coop
---
---  Copyright © 2007 Gas Powered Games, Inc.  All rights reserved.
+--- File     :  mods/Coop_AI_Mod/hook/lua/platoon.lua
+--- Summary  : Modifications for some of the platoon AI fuctions for coop
+---
+--- Copyright © 2007 Gas Powered Games, Inc.  All rights reserved.
 --------------------------------------------------------------------------
 local AIUtils = import("/lua/ai/aiutilities.lua")
 local Utilities = import("/lua/utilities.lua")
@@ -15,6 +12,7 @@ local Behaviors = import("/lua/ai/aibehaviors.lua")
 local AIAttackUtils = import("/lua/ai/aiattackutilities.lua")
 local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
 local SPAI = import("/lua/scenarioplatoonai.lua")
+local TransportUtils = import("/lua/ai/transportutilities.lua")
 
 --for sorian AI
 local SUtils = import("/lua/ai/sorianutilities.lua")
@@ -75,40 +73,6 @@ Platoon = Class(CampaignPlatoon) {
             end
             oldNumberOfUnitsInPlatoon = numberOfUnitsInPlatoon
 
-            -- deal with lost-puppy transports
-            local strayTransports = {}
-            for k,v in platoonUnits do
-                if EntityCategoryContains(categories.TRANSPORTATION, v) then
-                    table.insert(strayTransports, v)
-                end
-            end
-            if not table.empty(strayTransports) then
-                local dropPoint = pos
-                dropPoint[1] = dropPoint[1] + Random(-3, 3)
-                dropPoint[3] = dropPoint[3] + Random(-3, 3)
-                IssueTransportUnload(strayTransports, dropPoint)
-                WaitSeconds(10)
-                local strayTransports = {}
-                for k,v in platoonUnits do
-                    local parent = v:GetParent()
-                    if parent and EntityCategoryContains(categories.TRANSPORTATION, parent) then
-                        table.insert(strayTransports, parent)
-                        break
-                    end
-                end
-                if not table.empty(strayTransports) then
-                    local MAIN = aiBrain.BuilderManagers.MAIN
-                    if MAIN then
-                        dropPoint = MAIN.Position
-                        IssueTransportUnload(strayTransports, dropPoint)
-                        WaitSeconds(30)
-                    end
-                end
-                self.UsingTransport = false
-                AIUtils.ReturnTransportsToPool(strayTransports, true)
-                platoonUnits = self:GetPlatoonUnits()
-            end
-
             local cmdQ = {}
             -- fill cmdQ with current command queue for each unit
             for k, v in platoonUnits do
@@ -165,4 +129,17 @@ Platoon = Class(CampaignPlatoon) {
 			end
         end
     end,
+	
+	--- Assigns a platoon to the 'TransportPool' defined in "TransportUtilities.lua"
+	---@param self Platoon
+	AssignPlatoonToTransportPool = function(self)
+		self:Stop()
+		local aiBrain = self:GetBrain()
+		
+		for _, transport in self:GetPlatoonUnits() do
+			if not transport.dead then
+				TransportUtils.AssignTransportToPool(transport, aiBrain)
+			end
+		end
+	end
 }

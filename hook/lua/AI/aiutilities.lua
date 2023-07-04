@@ -3,9 +3,9 @@
 ---@param units Unit[]
 ---@param transports AirUnit[]
 ---@param location Vector
----@param transportPlatoon Platoon
+---@param UnitPlatoon Platoon
 ---@return boolean
-function UseTransports(units, transports, location, transportPlatoon)
+function UseTransports(units, transports, location, UnitPlatoon)
     local aiBrain
     for k, v in units do
         if not v.Dead then
@@ -51,7 +51,8 @@ function UseTransports(units, transports, location, transportPlatoon)
     for num, unit in units do
         if not unit.Dead then
             if unit:IsUnitState('Attached') then
-                aiBrain:AssignUnitsToPlatoon(pool, {unit}, 'Unassigned', 'None')
+                --aiBrain:AssignUnitsToPlatoon(pool, {unit}, 'Unassigned', 'None')
+				unit:Kill()
             elseif EntityCategoryContains(categories.url0306 + categories.DEFENSE, unit) then
                 table.insert(shields, unit)
             elseif unit:GetBlueprint().Transport.TransportClass == 3 then
@@ -98,8 +99,8 @@ function UseTransports(units, transports, location, transportPlatoon)
 		end
 	end
 	
-    if transportPlatoon then
-        transportPlatoon.UsingTransport = true
+    if UnitPlatoon then
+        UnitPlatoon.UsingTransport = true
     end
 
     local monitorUnits = {}
@@ -218,10 +219,47 @@ function UseTransports(units, transports, location, transportPlatoon)
         end
     end
 
-    if transportPlatoon then
-        transportPlatoon.UsingTransport = false
+    if UnitPlatoon then
+        UnitPlatoon.UsingTransport = false
     end
     ReturnTransportsToPool(transports, true)
 
     return true
+end
+
+--- Utility Function
+--- Returns the number of slots the transport has available
+---@param unit Unit
+---@return table
+function GetNumTransportSlots(unit)
+    local bones = {
+        Large = 0,
+        Medium = 0,
+        Small = 0,
+    }
+
+    -- compute count based on bones
+    for i = 1, unit:GetBoneCount() do
+        if unit:GetBoneName(i) ~= nil then
+            if string.find(unit:GetBoneName(i), 'Attachpoint_Lrg') then
+                bones.Large = bones.Large + 1
+            elseif string.find(unit:GetBoneName(i), 'Attachpoint_Med') then
+                bones.Medium = bones.Medium + 1
+            elseif string.find(unit:GetBoneName(i), 'Attachpoint') then
+                bones.Small = bones.Small + 1
+            end
+        end
+    end
+
+    -- retrieve number of slots set by blueprint, if it is set
+    local largeSlotsByBlueprint = unit.Blueprint.Transport.SlotsLarge or bones.Large 
+    local mediumSlotsByBlueprint = unit.Blueprint.Transport.SlotsMedium or bones.Medium 
+    local smallSlotsByBlueprint = unit.Blueprint.Transport.SlotsSmall or bones.Small 
+
+    -- take the minimum of the two
+    bones.Large = math.min(bones.Large, largeSlotsByBlueprint)
+    bones.Medium = math.min(bones.Medium, mediumSlotsByBlueprint)
+    bones.Small = math.min(bones.Small, smallSlotsByBlueprint)
+
+    return bones
 end

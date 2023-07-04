@@ -62,7 +62,7 @@ end
 ---@param num number
 ---@return boolean
 function NumGreaterOrEqualAMPlatoons(aiBrain, name, num)
-    return (aiBrain.AttackData.AMPlatoonCount[name] or 0) and aiBrain.AttackData.AMPlatoonCount[name] >= num
+    return (aiBrain.AttackData.AMPlatoonCount[name] or 0) >= num
 end
 
 ---@param aiBrain AIBrain
@@ -70,7 +70,7 @@ end
 ---@param num number
 ---@return boolean
 function NumGreaterAMPlatoons(aiBrain, name, num)
-    return (aiBrain.AttackData.AMPlatoonCount[name] or 0) and aiBrain.AttackData.AMPlatoonCount[name] > num
+    return (aiBrain.AttackData.AMPlatoonCount[name] or 0) > num
 end
 
 ---@param aiBrain AIBrain
@@ -78,7 +78,7 @@ end
 ---@param num number
 ---@return boolean
 function NumLessOrEqualAMPlatoons(aiBrain, name, num)
-	return (aiBrain.AttackData.AMPlatoonCount[name] or 0) and aiBrain.AttackData.AMPlatoonCount[name] <= num
+	return (aiBrain.AttackData.AMPlatoonCount[name] or 0) <= num
 end
 
 ---@param aiBrain AIBrain
@@ -86,7 +86,7 @@ end
 ---@param num number
 ---@return boolean
 function NumLessAMPlatoons(aiBrain, name, num)
-	return (aiBrain.AttackData.AMPlatoonCount[name] or 0) and aiBrain.AttackData.AMPlatoonCount[name] < num
+	return (aiBrain.AttackData.AMPlatoonCount[name] or 0) < num
 end
 
 ---@param aiBrain AIBrain

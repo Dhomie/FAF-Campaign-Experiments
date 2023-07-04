@@ -81,7 +81,7 @@ AttackManager = ClassSimple {
                 self:AddPlatoonsTable(attackDataTable.Platoons)
             end
         elseif not self.AttackCheckInterval then
-            self.AttackCheckInterval = 13
+            self.AttackCheckInterval = 15
         end
         self['AttackManagerState'] = 'ACTIVE'
         self['AttackManagerThread'] = self:ForkThread(self.AttackManagerThread)
@@ -105,11 +105,7 @@ AttackManager = ClassSimple {
     AddDefaultPlatoons = function(self, AttackConds)
         if not AttackConds then
             AttackConds = {
-				{ '/lua/editor/platooncountbuildconditions.lua', 'NumGreaterOrEqualAMPlatoons', {'default_brain', 'DefaultGroupAir', 3}},
-                --{ '/lua/editor/MiscBuildConditions.lua', 'False', {'default_brain'}},
-				--{ '/lua/editor/PlatoonCountBuildConditions.lua', 'NumLessOrEqualAMPlatoons', {'default_brain', 'DefaultGroupAir', 3}},
-				--{ '/lua/editor/PlatoonCountBuildConditions.lua', 'NumLessOrEqualAMPlatoons', {'default_brain', 'DefaultGroupLand', 3}},
-				--{ '/lua/editor/PlatoonCountBuildConditions.lua', 'NumLessOrEqualAMPlatoons', {'default_brain', 'DefaultGroupSea', 3}},
+                { '/lua/editor/MiscBuildConditions.lua', 'False', {'default_brain'}},
             }
         end
 
@@ -323,6 +319,7 @@ AttackManager = ClassSimple {
                         local poolUnits = poolPlatoon:GetPlatoonUnits()
                         local addUnits = {}
 						
+						-- If the AM platoon has a base of origin, it will only grab ArmyPool units from near it
                         if v.LocationType then
                             local location = false
                             for locNum, locData in self.brain.PBM.Locations do
@@ -340,6 +337,7 @@ AttackManager = ClassSimple {
                                     table.insert(addUnits, unit)
                                 end
                             end
+						-- If there's no base of origin, grab ArmyPool units from anywhere
                         else
                             for i,unit in poolUnits do
                                 if EntityCategoryContains(checkCategory, unit) then
@@ -350,18 +348,29 @@ AttackManager = ClassSimple {
                         self.brain:AssignUnitsToPlatoon(tempPlatoon, addUnits, 'Attack', formation)
                     end
 					
+					-- Set the platoon's data
                     if v.PlatoonData then
                         tempPlatoon:SetPlatoonData(v.PlatoonData)
                     else
                         tempPlatoon.PlatoonData = {}
                     end
+					-- Set the platoon's name
                     tempPlatoon.PlatoonData.PlatoonName = v.PlatoonName
-						--LOG('*AI DEBUG: ARMY ', repr(self.brain:GetArmyIndex()),': AM Master Platoon formed - ',repr(v.BuilderName))
+					--LOG('*AI DEBUG: ARMY ' .. repr(self.brain:GetArmyIndex()) .. ': AM Master Platoon formed - ' .. repr(v.BuilderName))
+					
+					-- Cache the origin base into the platoon
+					if v.LocationType then
+						tempPlatoon.LocationType = v.LocationType
+						--LOG('*AI DEBUG: ARMY ' .. repr(self.brain:GetArmyIndex()) .. ': AM Master Platoon originates from base: ' .. repr(tempPlatoon.LocationType))
+					end
+					
+					-- Set the platoon AI function
                     if v.AIThread then
                         tempPlatoon:ForkAIThread(import(v.AIThread[1])[v.AIThread[2]])
                         --LOG('*AM DEBUG: AM Master Platoon using AI Thread: ', repr(v.AIThread[2]), ' Builder named: ', repr(v.BuilderName))
 					end
 					
+					-- Add callbacks when the platoon is destroyed
                     if v.DestroyCallbacks then
                         for dcbNum, destroyCallback in v.DestroyCallbacks do
                             tempPlatoon:AddDestroyCallback(import(destroyCallback[1])[destroyCallback[2]])
@@ -369,6 +378,7 @@ AttackManager = ClassSimple {
                         end
                     end
 					
+					-- Call for the specified callbacks, since we were just formed
                     if v.FormCallbacks then
                         for cbNum, callback in v.FormCallbacks do
                             if type(callback) == 'function' then

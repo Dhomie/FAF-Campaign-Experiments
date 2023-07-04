@@ -1,88 +1,21 @@
 ---------------------------------------------------------------------------------------------
----- File     :	/lua/AI/OpAI/BaseManager.lua
----- Summary  : Base Manager edit for coop
----- Changelog: 	- Slight edit to Factory upgrade checks
-----				- Shields and mexes now upgrade from their lowest available tech variants
-----				- Rebuilds are infinite for all difficulties
-----				- TMLs and SMLs only receive 1 ammo after spawning
----- Edited by: Dhomie42
----- Copyright © 2005 Gas Powered Games, Inc.  All rights reserved.
+--- File     :	/lua/AI/OpAI/BaseManager.lua
+--- Summary  : Base Manager fixes, additions for campaign/coop
+---
+--- Copyright © 2005 Gas Powered Games, Inc.  All rights reserved.
 ---------------------------------------------------------------------------------------------
 
----@alias SaveFile "AirAttacks" | "AirScout" | "BasicLandAttack" | "BomberEscort" | "HeavyLandAttack" | "LandAssualt" | "LeftoverCleanup" | "LightAirAttack" | "NavalAttacks" | "NavalFleet"
+--- Changelog:
+--- 	- More reliable structure upgrade checks
+---		- Most structures now upgrade from their lowest available tech variants
+---		- Rebuilds are infinite for all difficulties
+---		- TMLs and SMLs only receive 1 ammo after spawning
+---		- Fixed ACUs and sACUs removing prerequisite enhancements
+---		- Added default transport platoons, along with the corresponding BaseManager functionality, courtesy of 4z0t for the idea
 
--- types that originate from the map
 
----@class MarkerChain: string                   # Name reference to a marker chain as defined in the map
----@class Area: string                          # Name reference to a area as defined in the map
----@class Marker: string                        # Name reference to a marker as defined in the map
----@class UnitGroup: string                     # Name reference to a unit group as defined in the map
-
--- types commonly used in repository
-
----@class FileName: string
----@class FunctionName: string
-
----@class BuildCondition
----@field [1] FileName
----@field [2] FunctionName
----@field [3] any
-
----@class FileFunctionRef
----@field [1] FileName
----@field [2] FunctionName
-
----@class BuildGroup                       
----@field Name UnitGroup
----@field Priority number
-
--- types used by AddOpAI
-
----@class MasterPlatoonFunction
----@field [1] FileName
----@field [2] FunctionName
-
----@class PlatoonData
----@field TransportReturn Marker                # Location for transports to return to
----@field PatrolChains MarkerChain[]            # Selection of patrol chains to guide the constructed units
----@field PatrolChain MarkerChain               # Patrol chain to guide the construced units
----@field AttackChain MarkerChain               # Attack chain to guide the constructed units
----@field LandingChain MarkerChain              # Landing chain to guide the transports carrying the constructed units
----@field Area Area                             # An area, use depends on master platoon function
----@field Location Marker                       # A location, use depends on master platoon function
-
----@class AddOpAIData
----@field MasterPlatoonFunction FileFunctionRef     # Behavior of instances upon completion
----@field PlatoonData PlatoonData                   # Parameters of the master platoon function
----@field Priority number                           # Priority over other builders
-
--- types used by AddUnitAI
-
----@class AddUnitAIData                         
----@field Amount number                         # Number of engineers that can assist building
----@field KeepAlive boolean                     # ??
----@field BuildCondition BuildCondition[]       # Build conditions that must be met before building can start, can be empty
----@field PlatoonAIFunction FileFunctionRef     # A { file, function } reference to the platoon AI function
----@field MaxAssist number                      # Number of engineers that can assist construction
----@field Retry boolean                         # Flag that allows the AI to retry
----@field PlatoonData PlatoonData               # Parameters of the platoon AI function
-
-local BaseManagerTemplate = import('/lua/ai/opai/basemanager.lua').BaseManager
-local AIUtils = import('/lua/ai/aiutilities.lua')
-
-local ScenarioUtils = import('/lua/sim/ScenarioUtilities.lua')
-
-local StructureTemplates = import("/lua/buildingtemplates.lua")
-local UpgradeTemplates = import("/lua/upgradetemplates.lua")
-
-local Buff = import('/lua/sim/Buff.lua')
-
-local BaseOpAI = import('/lua/ai/opai/baseopai.lua')
-local ReactiveAI = import('/lua/ai/opai/ReactiveAI.lua')
-local NavalOpAI = import('/lua/ai/opai/NavalOpAI.lua')
-
-local BMBC = '/lua/editor/BaseManagerBuildConditions.lua'
-local BMPT = '/lua/ai/opai/BaseManagerPlatoonThreads.lua'
+local BaseManagerTemplate = BaseManager
+local Factions = import('/lua/factions.lua').Factions
 
 -- Default rebuild numbers for buildings based on type; -1 is infinite
 local BuildingCounterDefaultValues = {
@@ -105,9 +38,45 @@ local BuildingCounterDefaultValues = {
 ---@class BaseManager
 ---@field Trash TrashBag
 ---@field AIBrain AIBrain
-BaseManager = Class(BaseManagerTemplate)
-{
+BaseManager = Class(BaseManagerTemplate) {
+	--- Introduces all the relevant fields to the base manager, internally called by the engine
+    ---@param self BaseManager      # An instance of the BaseManager class
+    ---@return nil
+    Create = function(self)
+		BaseManagerTemplate.Create(self)
+		
+		-- Default to no transports needed
+		self.TransportsNeeded = 0
+		self.TransportsTech = 1
+		
+		self.FunctionalityStates = {
+            AirAttacks = true,
+            AirScouting = false,
+            AntiAir = true,
+            Artillery = true,
+            BuildEngineers = true,
+            CounterIntel = true,
+            EngineerReclaiming = true,
+            Engineers = true,
+            ExpansionBases = false,
+            Fabrication = true,
+            GroundDefense = true,
+            Intel = true,
+            LandAttacks = true,
+            LandScouting = false,
+            Nukes = false,
+            Patrolling = true,
+            SeaAttacks = true,
+            Shields = true,
+            TMLs = true,
+            Torpedos = true,
+			Transports = false,
+            Walls = true,
 
+            --Custom = {},
+        }
+    end,
+	
 	--- Initialises the base manager. 
     ---@see See the functions StartNonZeroBase, StartDifficultyBase, StartBase or StartEmptyBase to the initial state of the base
     ---@param self BaseManager          # An instance of the BaseManager class
@@ -119,53 +88,8 @@ BaseManager = Class(BaseManagerTemplate)
     ---@param diffultySeparate any      # Flag that indicates we have a base that expands based on difficulty
     ---@return nil
     Initialize = function(self, brain, baseName, markerName, radius, levelTable, diffultySeparate)
-        self.Active = true
-        if self.Initialized then
-            error('*AI ERROR: BaseManager named "' .. baseName .. '" has already been initialized', 2)
-        end
-
-        self.Initialized = true
-        if not brain.BaseManagers then
-            brain.BaseManagers = {}
-            brain:PBMRemoveBuildLocation(false, 'MAIN') -- Remove main since we dont use it in ops much
-        end
-
-        brain.BaseManagers[baseName] = self -- Store base in table, index by name of base
-        self.AIBrain = brain
-        self.Position = ScenarioUtils.MarkerToPosition(markerName)
-        self.BaseName = baseName
-        self.Radius = radius
-        for groupName, priority in levelTable do
-            if not diffultySeparate then
-                self:AddBuildGroup(groupName, priority, false, true) -- Do not spawn units, do not sort
-            else
-                self:AddBuildGroupDifficulty(groupName, priority, false, true) -- Do not spawn units, do not sort
-            end
-        end
-
-        self.AIBrain:PBMAddBuildLocation(markerName, radius, baseName) -- Add base to PBM
-        self:LoadDefaultBaseCDRs() -- ACU things
-        self:LoadDefaultBaseSupportCDRs() -- sACU things
-		self:LoadDefaultBaseEngineers() -- All other Engs
-		--self:LoadDefaultBaseTechLevelEngineers(3) -- Load in specific tech level engineers
-        self:LoadDefaultScoutingPlatoons() -- Load in default scouts
-        self:LoadDefaultBaseTMLs() -- TMLs
-        self:LoadDefaultBaseNukes() -- Nukes
-        self:SortGroupNames() -- Force sort since no sorting when adding groups earlier
-        self:ForkThread(self.UpgradeCheckThread) -- Start the thread to see if any buildings need upgrades
-
-        -- Check for a default chains for engineers' patrol and scouting
-        if Scenario.Chains[baseName..'_EngineerChain'] then
-            self:SetDefaultEngineerPatrolChain(baseName..'_EngineerChain')
-        end
-
-        if Scenario.Chains[baseName..'_AirScoutChain'] then
-            self:SetDefaultAirScoutPatrolChain(baseName..'_AirScoutChain')
-        end
-
-        if Scenario.Chains[baseName..'_LandScoutChain'] then
-            self:SetDefaultLandScoutPatrolChain(baseName..'_LandScoutChain')
-        end
+		BaseManagerTemplate.Initialize(self, brain, baseName, markerName, radius, levelTable, diffultySeparate)
+		self:LoadDefaultBaseTransports()
     end,
 	
 	-- Determines if a specific unit needs upgrades, returns name of upgrade if needed
@@ -213,7 +137,7 @@ BaseManager = Class(BaseManagerTemplate)
 			-- 'Shield' is created, then we need to create 'ShieldHeavy', however 'Shield' occupies the slot 'ShieldHeavy' wants, so we remove 'Shield'
 			-- But we need 'Shield' for 'ShieldHeavy', so we create it again, etc. We end up in an infinite loop.
 			
-			--So, we check if the occupied slot has the prerequisite upgrade, if it has something else, ONLY then we remove it.
+		-- So, we check if the occupied slot has the prerequisite upgrade, if it has something else, ONLY then we remove it.
         for _, upgradeName in upgradeTable do
             -- Find the upgrade in the unit's bp
             local bpUpgrade = allEnhancements[upgradeName]
@@ -237,8 +161,7 @@ BaseManager = Class(BaseManagerTemplate)
                     end
                 end
             else
-                error('*Base Manager Error: ' ..
-                    self.BaseName .. ', enhancement: ' .. upgradeName .. ' was not found in the unit\'s bp.')
+                error('*Base Manager Error: ' .. self.BaseName .. ', enhancement: ' .. upgradeName .. ' was not found in the unit\'s bp.')
             end
         end
 
@@ -287,75 +210,167 @@ BaseManager = Class(BaseManagerTemplate)
     end,
 
     BuildingCounterDifficultyDefault = function(self, buildingType)
-        local diff = ScenarioInfo.Options.Difficulty
-        if not diff then diff = 1 end
-        for k, v in BuildingCounterDefaultValues[diff] do
-            if buildingType == k then
-                return v
-            end
-        end
+        local diff = ScenarioInfo.Options.Difficulty or 1
 
         return BuildingCounterDefaultValues[diff].Default
     end,
+	
+	ActivationFunctions = {
+        ShieldsActive = function(self, val)
+            local shields = AIUtils.GetOwnUnitsAroundPoint(self.AIBrain, categories.SHIELD * categories.STRUCTURE,
+                self.Position, self.Radius)
+            for k, v in shields do
+                if val then
+                    v:OnScriptBitSet(0) -- If turning on shields
+                else
+                    v:OnScriptBitClear(0) -- If turning off shields
+                end
+            end
+            self.FunctionalityStates.Shields = val
+        end,
 
-    --------------------------------------
-    -- Specific builders for base managers
-    --------------------------------------
-	LoadDefaultBaseTechLevelEngineers = function(self, level)
-		--Handle special case of non-existant tech level
-		if not level or (level ~= 3 and level ~= 2 and level ~= 1) then
-			error('BASEMANAGER ERROR: LoadBaseTechLevelEngineers(self, level) does not accept parameter:' .. repr(level) .. 'as a tech level, valid options are: 1, 2, or 3', 2)
-		end
+        FabricationActive = function(self, val)
+            local fabs = AIUtils.GetOwnUnitsAroundPoint(self.AIBrain, categories.MASSFABRICATION * categories.STRUCTURE,
+                self.Position, self.Radius)
+            for k, v in fabs do
+                if val then
+                    v:OnScriptBitClear(4) -- If turning on
+                else
+                    v:OnScriptBitSet(4) -- If turning off
+                end
+            end
+            self.FunctionalityStates.Fabrication = val
+        end,
+
+        IntelActive = function(self, val)
+            local intelUnits = AIUtils.GetOwnUnitsAroundPoint(self.AIBrain,
+                (categories.RADAR + categories.SONAR + categories.OMNI) * categories.STRUCTURE, self.Position,
+                self.Radius)
+            for k, v in intelUnits do
+                if val then
+                    v:OnScriptBitClear(3) -- If turning on
+                else
+                    v:OnScriptBitSet(3) -- If turning off
+                end
+            end
+            self.FunctionalityStates.Intel = val
+        end,
+
+        CounterIntelActive = function(self, val)
+            local intelUnits = AIUtils.GetOwnUnitsAroundPoint(self.AIBrain,
+                categories.COUNTERINTELLIGENCE * categories.STRUCTURE, self.Position, self.Radius)
+            for k, v in intelUnits do
+                if val then
+                    v:OnScriptBitClear(3) -- If turning on intel
+                else
+                    v:OnScriptBitSet(2) -- If turning off intel
+                end
+            end
+            self.FunctionalityStates.CounterIntel = val
+        end,
+
+        TMLActive = function(self, val)
+            self.FunctionalityStates.TMLs = val
+        end,
+
+        NukeActive = function(self, val)
+            self.FunctionalityStates.Nukes = val
+        end,
+
+        PatrolActive = function(self, val)
+            self.FunctionalityStates.Patrolling = val
+        end,
+
+        ReclaimActive = function(self, val)
+            self.FunctionalityStates.EngineerReclaiming = val
+        end,
 		
-        -- The Engineer AI Thread
-        local defaultBuilder = {
-            BuilderName = 'Specific_T' .. level .. 'BaseManaqer_EngineersWork_' .. self.BaseName,
-            PlatoonTemplate = self:CreateEngineerPlatoonTemplate(level),
-            Priority = 1,
-            PlatoonAIFunction = {'/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit'},
+		TransportsActive = function(self, val)
+			self.FunctionalityStates.Transports = val
+		end,
+
+        LandScoutingActive = function(self, val)
+            self.FunctionalityStates.LandScouting = val
+        end,
+
+        AirScoutingActive = function(self, val)
+            self.FunctionalityStates.AirScouting = val
+        end,
+    },
+	
+	SetTransportsNeeded = function(self, val)
+		self.TransportsNeeded = val
+	end,
+	
+	SetTransportsTech = function(self, val)
+		self.TransportsTech = val
+	end,
+	
+	---@param self BaseManager
+    LoadDefaultBaseTransports = function(self)
+        local faction = self.AIBrain:GetFactionIndex()
+        for tech = 1, 2 do
+            local factionName = Factions[faction].Key
+            self.AIBrain:PBMAddPlatoon {
+                BuilderName = 'BaseManager_TransportPlatoon_' .. self.BaseName .. factionName .. tech,
+                PlatoonTemplate = self:CreateTransportPlatoonTemplate(tech, faction),
+                Priority = 200 * tech,
+                PlatoonType = 'Air',
+                RequiresConstruction = true,
+                LocationType = self.BaseName,
+                PlatoonAIFunction = { '/lua/ScenarioPlatoonAI.lua', 'TransportPool' },
+                BuildConditions = {
+                    { BMBC, 'TransportsEnabled', { self.BaseName } },
+                    { BMBC, 'TransportsTechAllowed', { self.BaseName, tech } },
+                    { BMBC, 'NeedTransports', { self.BaseName } },
+                },
+                PlatoonData = {
+                    BaseName = self.BaseName,
+                },
+                InstanceCount = 2,
+            }
+        end
+        if faction ~= 1 then return end
+        self.AIBrain:PBMAddPlatoon {
+            BuilderName = 'BaseManager_TransportPlatoon_' .. self.BaseName .. "UEF3",
+            PlatoonTemplate = {
+                'TransportTemplate',
+                'NoPlan',
+                { "xea0306", 1, 2, 'Attack', 'None' },
+            },
+            Priority = 600,
+            PlatoonType = 'Air',
+            RequiresConstruction = true,
+            LocationType = self.BaseName,
+            PlatoonAIFunction = { '/lua/ScenarioPlatoonAI.lua', 'TransportPool' },
             BuildConditions = {
-                {BMBC, 'BaseManagerNeedsEngineers', {self.BaseName}},
-                {BMBC, 'BaseActive', {self.BaseName}},
+                { BMBC, 'TransportsEnabled', { self.BaseName } },
+                { BMBC, 'TransportsTechAllowed', { self.BaseName, 3 } },
+                { BMBC, 'NeedTransports', { self.BaseName } },
             },
             PlatoonData = {
                 BaseName = self.BaseName,
             },
-            PlatoonType = 'Any',
-            RequiresConstruction = false,
-            LocationType = self.BaseName,
+            InstanceCount = 2,
         }
-        self.AIBrain:PBMAddPlatoon(defaultBuilder)
-        
-		-- Disbanding Engineer platoons, only the tech tier specified by 'level'
-        for j = 1, 5 do
-            for num, pType in {'Air', 'Land', 'Sea'} do
-                defaultBuilder = {
-                    BuilderName = 'Specific_T' .. level .. 'BaseManagerEngineerDisband_' .. j .. 'Count_' .. self.BaseName,
-                    PlatoonAIPlan = 'DisbandAI',
-                    PlatoonTemplate = self:CreateEngineerPlatoonTemplate(level, j),
-                    Priority = 300 * j,
-                    PlatoonType = pType,
-                    RequiresConstruction = true,
-                    LocationType = self.BaseName,
-                    PlatoonData = {
-                        NumBuilding = j,
-                        BaseName = self.BaseName,
-                    },
-                    BuildConditions = {
-                        {BMBC, 'BaseEngineersEnabled', {self.BaseName}},
-                        {BMBC, 'BaseBuildingEngineers', {self.BaseName}},
-                        {BMBC, 'HighestFactoryLevel', {level, self.BaseName}},
-                        {BMBC, 'FactoryCountAndNeed', {level, j, pType, self.BaseName}},
-                        {BMBC, 'BaseActive', {self.BaseName}},
-                    },
-                    PlatoonBuildCallbacks = {{BMBC, 'BaseManagerEngineersStarted'},},
-                    InstanceCount = 2,
-                    BuildTimeOut = 10, -- Timeout really fast because they dont need to really finish
-                }
-                self.AIBrain:PBMAddPlatoon(defaultBuilder)
-            end
+    end,
+
+    CreateTransportPlatoonTemplate = function(self, techLevel, faction)
+        faction = faction or self.AIBrain:GetFactionIndex()
+        local template = {
+            'TransportTemplate',
+            'NoPlan',
+            { 'uea', 1, 3, 'Attack', 'None' },
+        }
+        if techLevel == 1 then
+            template[3][1] = template[3][1] .. '0107'
+        elseif techLevel == 2 then
+            template[3][1] = template[3][1] .. '0104'
         end
+        template = ScenarioUtils.FactionConvert(template, faction)
+        return template
     end,
 }
+
 
 

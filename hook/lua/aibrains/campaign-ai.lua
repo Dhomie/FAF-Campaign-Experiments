@@ -16,6 +16,122 @@ local CoopAIBrain = AIBrain
 ---@field PBM AiPlatoonBuildManager
 ---@field IMAPConfig
 AIBrain = Class(CoopAIBrain) {
+
+	-- Main building and forming platoon thread for the Platoon Build Manager
+    ---@param self CampaignAIBrain
+    PlatoonBuildManagerThread = function(self)
+        local personality = self:GetPersonality()
+        local armyIndex = self:GetArmyIndex()
+
+        -- Split the brains up a bit so they aren't all doing the PBM thread at the same time
+        if not self.PBMStartUnlocked then
+            self:PBMUnlockStart()
+        end
+
+        while true do
+            self:PBMCheckBusyFactories()
+            if self.BrainType == 'AI' then
+                self:PBMSetPrimaryFactories()
+            end
+            local platoonList = self.PBM.Platoons
+            -- clear the cache so we can get fresh new responses!
+            self:PBMClearBuildConditionsCache()
+            -- Go through the different types of platoons
+            for typek, typev in self.PBM.PlatoonTypes do
+                -- First go through the list of locations and see if we can build stuff there.
+                for k, v in self.PBM.Locations do
+                    -- See if we have platoons to build in that type
+                    if not table.empty(platoonList[typev]) then
+                        -- Sort the list of platoons via priority
+                        if self.PBM.NeedSort[typev] then
+                            self:PBMSortPlatoonsViaPriority(typev)
+                        end
+                        -- FORM PLATOONS
+                        self:PBMFormPlatoons(true, typev, v)
+                        -- BUILD PLATOONS
+                        -- See if our primary factory is busy.
+                        if v.PrimaryFactories[typev] then
+                            local priFac = v.PrimaryFactories[typev]
+                            local numBuildOrders = nil
+                            if priFac and not priFac.Dead then
+                                numBuildOrders = priFac:GetNumBuildOrders(categories.ALLUNITS)
+                                if numBuildOrders == 0 then
+                                    local guards = priFac:GetGuards()
+                                    if guards and not table.empty(guards) then
+                                        for kg, vg in guards do
+                                            numBuildOrders = numBuildOrders + vg:GetNumBuildOrders(categories.ALLUNITS)
+                                            if numBuildOrders == 0 and vg:IsUnitState('Building') then
+                                                numBuildOrders = 1
+                                            end
+                                            if numBuildOrders > 0 then
+                                                break
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                            if numBuildOrders and numBuildOrders == 0 then
+                                local possibleTemplates = {}
+                                local priorityLevel = false
+                                -- Now go through the platoon templates and see which ones we can build.
+                                for kp, vp in platoonList[typev] do
+                                    -- Don't try to build things that are higher pri than 0
+                                    -- This platoon requires construction and isn't just a form-only platoon.
+                                    local globalBuilder = ScenarioInfo.BuilderTable[self.CurrentPlan][typev][vp.BuilderName]
+                                    if priorityLevel and (vp.Priority ~= priorityLevel or not self.PBM.RandomSamePriority) then
+                                            break
+                                    elseif (not priorityLevel or priorityLevel == vp.Priority) and vp.Priority > 0 and globalBuilder.RequiresConstruction
+                                            -- The location we're looking at is an allowed location
+                                           and (vp.LocationType == v.LocationType or not vp.LocationType)
+                                            -- Make sure there is a handle slot available
+                                           and (self:PBMHandleAvailable(vp)) then
+                                        -- Fix up the primary factories to fit the proper table required by CanBuildPlatoon
+                                        local suggestedFactories = {v.PrimaryFactories[typev]}
+                                        local factories = self:CanBuildPlatoon(vp.PlatoonTemplate, suggestedFactories)
+                                        if factories and self:PBMCheckBuildConditions(globalBuilder.BuildConditions, armyIndex) then
+                                            priorityLevel = vp.Priority
+                                            for i = 1, self:PBMNumHandlesAvailable(vp) do
+                                                table.insert(possibleTemplates, {Builder = vp, Index = kp, Global = globalBuilder})
+                                            end
+                                        end
+                                    end
+                                end
+                                if priorityLevel then
+                                    local builderData = possibleTemplates[ Random(1, TableGetn(possibleTemplates)) ]
+                                    local vp = builderData.Builder
+                                    local kp = builderData.Index
+                                    local globalBuilder = builderData.Global
+                                    local suggestedFactories = {v.PrimaryFactories[typev]}
+                                    local factories = self:CanBuildPlatoon(vp.PlatoonTemplate, suggestedFactories)
+                                    vp.BuildTemplate = self:PBMBuildNumFactories(vp.PlatoonTemplate, v, typev, factories)
+                                    -- Check all the requirements to build the platoon
+                                    -- The Primary Factory can actually build this platoon
+                                    -- The platoon build condition has been met
+                                    -- Finally, build the platoon.
+                                    self:BuildPlatoon(vp.BuildTemplate, factories, personality:GetPlatoonSize())
+                                    self:PBMSetHandleBuilding(self.PBM.Platoons[typev][kp])
+                                    if globalBuilder.GenerateTimeOut then
+                                        vp.BuildTimeOut = self:PBMGenerateTimeOut(globalBuilder, factories, v, typev)
+                                    else
+                                        vp.BuildTimeOut = globalBuilder.BuildTimeOut
+                                    end
+                                    vp.PlatoonTimeOutThread = self:ForkThread(self.PBMPlatoonTimeOutThread, vp)
+                                    if globalBuilder.PlatoonBuildCallbacks then
+                                        for cbk, cbv in globalBuilder.PlatoonBuildCallbacks do
+                                            import(cbv[1])[cbv[2]](self, globalBuilder.PlatoonData)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                -- WaitSeconds(.1)
+            end
+            -- Do it all over again in 15 seconds.
+            WaitSeconds(self.PBM.BuildCheckInterval or 15)
+        end
+    end,
     --- Form platoons
     --- Extracted as it's own function so you can call this to try and form platoons to clean up the pool
     ---@param self AIBrain
@@ -51,11 +167,8 @@ AIBrain = Class(CoopAIBrain) {
             -- The platoon is required to be in the building state and it is
             -- or The platoon doesn't have a handle and either doesn't require to be building state or doesn't require construction
             -- all that and passes it's build condition function.
-            if vp.Priority > 0 and (requireBuilding and self:PBMCheckHandleBuilding(vp)
-                    and numBuildOrders and numBuildOrders == 0
-                    and (not vp.LocationType or vp.LocationType == location.LocationType))
-                    or (((self:PBMHandleAvailable(vp)) and (not requireBuilding or not globalBuilder.RequiresConstruction))
-                    and (not vp.LocationType or vp.LocationType == location.LocationType)
+            if vp.Priority > 0 and (requireBuilding and self:PBMCheckHandleBuilding(vp) and numBuildOrders and numBuildOrders == 0 and (not vp.LocationType or vp.LocationType == location.LocationType))
+                    or (((self:PBMHandleAvailable(vp)) and (not requireBuilding or not globalBuilder.RequiresConstruction)) and (not vp.LocationType or vp.LocationType == location.LocationType)
                     and self:PBMCheckBuildConditions(globalBuilder.BuildConditions, armyIndex)) then
                 local poolPlatoon = self:GetPlatoonUniquelyNamed('ArmyPool')
                 local formIt = false
@@ -80,7 +193,6 @@ AIBrain = Class(CoopAIBrain) {
                     formIt = poolPlatoon:CanFormPlatoon(template, personality:GetPlatoonSize())
                 end
 
-                local ptnSize = personality:GetPlatoonSize()
                 if formIt then
                     local hndl
                     if location.Location and location.Radius and vp.LocationType then
@@ -96,7 +208,7 @@ AIBrain = Class(CoopAIBrain) {
                             vp.PlatoonTimeOutThread:Destroy()
                         end
                     end
-						--LOG('*PBM DEBUG: Platoon formed with: ', repr(TableGetn(hndl:GetPlatoonUnits())), ' Builder Named: ', repr(vp.BuilderName))
+					--LOG('*PBM DEBUG: Platoon formed with: ', repr(TableGetn(hndl:GetPlatoonUnits())), ' Builder Named: ', repr(vp.BuilderName))
                     hndl.PlanName = template[2]
 
                     -- If we have specific AI, fork that AI thread
@@ -104,24 +216,29 @@ AIBrain = Class(CoopAIBrain) {
                         hndl:StopAI()
                         hndl:ForkAIThread(import(globalBuilder.PlatoonAIFunction[1])[globalBuilder.PlatoonAIFunction[2]])
                     end
-
+					
+					-- If we have an AI from "platoon.lua", use that
                     if globalBuilder.PlatoonAIPlan then
                         hndl:SetAIPlan(globalBuilder.PlatoonAIPlan)
                     end
 
                     -- If we have additional threads to fork on the platoon, do that as well.
+					-- Note: These are platoon AI functions from "platoon.lua"
                     if globalBuilder.PlatoonAddPlans then
                         for papk, papv in globalBuilder.PlatoonAddPlans do
                             hndl:ForkThread(hndl[papv])
                         end
                     end
-
+					
+					-- If we have additional functions to fork on the platoon, do that as well
                     if globalBuilder.PlatoonAddFunctions then
                         for pafk, pafv in globalBuilder.PlatoonAddFunctions do
                             hndl:ForkThread(import(pafv[1])[pafv[2]])
                         end
                     end
-
+					
+					-- If we have additional behaviours to fork on the platoon, do that as well
+					-- Note: These are platoon AI functions from "AIBehaviors.lua"
                     if globalBuilder.PlatoonAddBehaviors then
                         for pafk, pafv in globalBuilder.PlatoonAddBehaviors do
                             hndl:ForkThread(Behaviors[pafv])
@@ -135,16 +252,21 @@ AIBrain = Class(CoopAIBrain) {
                             self.PlatoonNameCounter[vp.BuilderName] = 1
                         end
                     end
-
+					
                     hndl:AddDestroyCallback(self.PBMPlatoonDestroyed)
                     hndl.BuilderName = vp.BuilderName
+					
+					-- Cache the origin base into the platoon
+					if vp.LocationType then
+						hndl.LocationType = vp.LocationType
+					end
+					
+					-- Set the platoon data
+					-- Also set the platoon to be part of the attack force if specified in the platoon data. used for AttackManager platoon forming
                     if globalBuilder.PlatoonData then
                         hndl:SetPlatoonData(globalBuilder.PlatoonData)
-						--Only this part was changed, I don't see any reason to loop through the AMPlatoons section, 2 original lines were commented out
                         if globalBuilder.PlatoonData.AMPlatoons then
-                            --for _, v in globalBuilder.PlatoonData.AMPlatoons do
-                                hndl:SetPartOfAttackForce()
-                            --end
+                            hndl:SetPartOfAttackForce()
                         end
                     end
                 end
@@ -156,7 +278,7 @@ AIBrain = Class(CoopAIBrain) {
         end
     end,
 	
-	---Goes through the location areas, finds the factories, sets a primary then tells all the others to guard.
+	--- Goes through the location areas, finds the factories, sets a primary then tells all the others to guard.
     ---@param self CampaignAIBrain
     PBMSetPrimaryFactories = function(self)
         for _, v in self.PBM.Locations do
@@ -219,7 +341,6 @@ AIBrain = Class(CoopAIBrain) {
             if not v.RallyPoint or table.empty(v.RallyPoint) then
                 self:PBMSetRallyPoint(airFactories, v, nil)
                 self:PBMSetRallyPoint(landFactories, v, nil)
-				--Changed to check for 'Naval Rally Point' marker first
                 self:PBMSetRallyPoint(seaFactories, v, nil, 'Naval Rally Point')
                 self:PBMSetRallyPoint(gates, v, nil)
             end
@@ -277,34 +398,7 @@ AIBrain = Class(CoopAIBrain) {
         return true
     end,
 	
-	IMAPConfiguration = function(self)
-        -- Used to configure imap values, used for setting threat ring sizes depending on map size to try and get a somewhat decent radius
-        local maxmapdimension = math.max(ScenarioInfo.size[1],ScenarioInfo.size[2])
-
-        if maxmapdimension == 256 then
-            self.IMAPConfig.OgridRadius = 22.5
-            self.IMAPConfig.IMAPSize = 32
-            self.IMAPConfig.Rings = 2
-        elseif maxmapdimension == 512 then
-            self.IMAPConfig.OgridRadius = 22.5
-            self.IMAPConfig.IMAPSize = 32
-            self.IMAPConfig.Rings = 2
-        elseif maxmapdimension == 1024 then
-            self.IMAPConfig.OgridRadius = 45.0
-            self.IMAPConfig.IMAPSize = 64
-            self.IMAPConfig.Rings = 1
-        elseif maxmapdimension == 2048 then
-            self.IMAPConfig.OgridRadius = 89.5
-            self.IMAPConfig.IMAPSize = 128
-            self.IMAPConfig.Rings = 0
-        else
-            self.IMAPConfig.OgridRadius = 180.0
-            self.IMAPConfig.IMAPSize = 256
-            self.IMAPConfig.Rings = 0
-        end
-    end,
-	
-	-- ENEMY PICKER AI
+	--- Enemy Picker thread
     ---@param self CampaignAIBrain
     PickEnemy = function(self)
         while true do
@@ -423,5 +517,59 @@ AIBrain = Class(CoopAIBrain) {
             end
         end
     end,
+	
+	---Used to get rid of nil table entries. Sorian ai function
+    ---@param self BaseAIBrain
+    ---@param oldtable table
+    ---@return table
+    RebuildTable = function(self, oldtable)
+        local temptable = {}
+        for k, v in oldtable do
+            if v ~= nil then
+                if type(k) == 'string' then
+                    temptable[k] = v
+                else
+                    table.insert(temptable, v)
+                end
+            end
+        end
+        return temptable
+    end,
+	
+	--- Returns the closest PBM build location to the given position, or nil
+	---@param self BaseAIBrain
+    ---@param position Vector
+    ---@return Vector
+    PBMFindClosestBuildLocation = function(self, position)
+        local distance, closest
+        for k, v in self.PBM.Locations do
+            if position then
+                if not closest then
+                    distance = VDist3(position, v.Location)
+                    closest = v.Location
+                else
+                    local tempDist = VDist3(position, v.Location)
+                    if tempDist < distance then
+                        distance = tempDist
+                        closest = v.Location
+                    end
+                end
+            end
+        end
+        return closest
+    end,
+	
+	--- Courtesy of 4z0t, returns existing platoon with name, or creates if it doesn't exist yet
+    ---@param self AIBrain
+    ---@param name string
+    ---@return Platoon
+    GetPlatoonUniquelyNamedOrMake = function(self, name)
+        local platoon = self:GetPlatoonUniquelyNamed(name)
+        if not platoon then
+            platoon = self:MakePlatoon("", "")
+            platoon:UniquelyNamePlatoon(name)
+        end
+        return platoon
+    end
 }
 end
