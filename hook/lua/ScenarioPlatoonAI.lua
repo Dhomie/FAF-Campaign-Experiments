@@ -1,14 +1,52 @@
-------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 --- File     :  /lua/ai/ScenarioPlatoonAI.lua
---- Author(s):  Drew Staltman
---- Summary  :  Houses a number of AI threads that are used in operations
+--- Summary  :  Houses a number of modified AI threads that are used in operations
+---
 --- Copyright © 2005 Gas Powered Games, Inc.  All rights reserved.
-------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 
 local AIBuildStructures = import("/lua/ai/aibuildstructures.lua")
 local ScenarioFramework = import("/lua/scenarioframework.lua")
 local StructureTemplates = import("/lua/buildingtemplates.lua")
 local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
+
+local TableInsert = table.insert
+
+--- Transfers the platoon's units to the specified transport platoon, or the universal 'TransportPool' if no base is specified
+--- Other platoons then can use the transport platoon to get to specified locations
+--- - TransportMoveLocation - Location to move transport to before assigning to transport pool
+--- - MoveRoute - List of locations to move to
+--- - MoveChain - Chain of locations to move
+---@param platoon Platoon
+function TransportPool(platoon)
+    local aiBrain = platoon:GetBrain()
+    local data = platoon.PlatoonData
+	
+	-- If base name is specified in platoon data, pick that first over actual base of origin (LocationType)
+	local BaseName = data.BaseName or platoon.LocationType
+	
+	if BaseName then 
+		poolName = BaseName .. '_TransportPool'
+	else
+		poolName = 'TransportPool'
+	end
+	
+    local tPool = aiBrain:GetPlatoonUniquelyNamedOrMake(poolName)
+	
+    if data.TransportMoveLocation then
+        if type(data.TransportMoveLocation) == 'string' then
+            data.MoveRoute = {ScenarioUtils.MarkerToPosition(data.TransportMoveLocation)}
+        else
+            data.MoveRoute = {data.TransportMoveLocation}
+        end
+    end
+
+    if data.MoveChain or data.MoveRoute then
+        MoveToThread(platoon)
+    end
+
+    aiBrain:AssignUnitsToPlatoon(tPool, platoon:GetPlatoonUnits(), 'Scout', 'GrowthFormation')
+end
 
 --- Utility Function
 --- Get and load transports with platoon units
@@ -34,7 +72,7 @@ function GetLoadTransports(platoon)
         if not transSlotTable[id] then
             transSlotTable[id] = GetNumTransportSlots(unit)
         end
-        table.insert(transportTable,
+        TableInsert(transportTable,
             {
                 Transport = unit,
                 LargeSlots = transSlotTable[id].Large,
@@ -50,15 +88,15 @@ function GetLoadTransports(platoon)
     local remainingSize1 = {}
     for num, unit in platoon:GetPlatoonUnits() do
         if EntityCategoryContains(categories.url0306 + categories.DEFENSE, unit) then
-            table.insert(shields, unit)
-        elseif unit:GetBlueprint().Transport.TransportClass == 3 then
-            table.insert(remainingSize3, unit)
-        elseif unit:GetBlueprint().Transport.TransportClass == 2 then
-            table.insert(remainingSize2, unit)
-        elseif unit:GetBlueprint().Transport.TransportClass == 1 then
-            table.insert(remainingSize1, unit)
+            TableInsert(shields, unit)
+        elseif unit.Blueprint.Transport.TransportClass == 3 then
+            TableInsert(remainingSize3, unit)
+        elseif unit.Blueprint.Transport.TransportClass == 2 then
+            TableInsert(remainingSize2, unit)
+        elseif unit.Blueprint.Transport.TransportClass == 1 then
+            TableInsert(remainingSize1, unit)
         elseif not EntityCategoryContains(categories.TRANSPORTATION, unit) then
-            table.insert(remainingSize1, unit)
+            TableInsert(remainingSize1, unit)
         end
     end
 
@@ -73,14 +111,14 @@ function GetLoadTransports(platoon)
     transportTable, leftoverShields = SortUnitsOnTransports(transportTable, shields, largeHave - needed.Large)
     transportTable, leftoverUnits = SortUnitsOnTransports(transportTable, remainingSize3, -1)
     transportTable, currLeftovers = SortUnitsOnTransports(transportTable, leftoverShields, -1)
-    for _, v in currLeftovers do table.insert(leftoverUnits, v) end
+    for _, v in currLeftovers do TableInsert(leftoverUnits, v) end
     transportTable, currLeftovers = SortUnitsOnTransports(transportTable, remainingSize2, -1)
-    for _, v in currLeftovers do table.insert(leftoverUnits, v) end
+    for _, v in currLeftovers do TableInsert(leftoverUnits, v) end
     transportTable, currLeftovers = SortUnitsOnTransports(transportTable, remainingSize1, -1)
-    for _, v in currLeftovers do table.insert(leftoverUnits, v) end
+    for _, v in currLeftovers do TableInsert(leftoverUnits, v) end
     transportTable, currLeftovers = SortUnitsOnTransports(transportTable, currLeftovers, -1)
 	
-	--Self-destruct any left-overs
+	-- Self-destruct any leftovers
 	for k, v in currLeftovers do
 		if not v.Dead then
 			v:Kill()
@@ -93,7 +131,7 @@ function GetLoadTransports(platoon)
         if not table.empty(data.Units) then
             IssueClearCommands(data.Units)
             IssueTransportLoad(data.Units, data.Transport)
-            for _, v in data.Units do table.insert(unitsToDrop, v) end
+            for _, v in data.Units do TableInsert(unitsToDrop, v) end
         end
     end
 
@@ -111,8 +149,10 @@ function GetLoadTransports(platoon)
             end
         end
     until attached
-
-    -- Any units that aren't transports and aren't attached send back to pool
+	
+	-- We actually self-destruct any leftovers for now, usually only 1-2 units get left behind, not much of a point to create a platoon for that many.
+	-- I'm keeping the code around though, in case creating a copy of the original platoon from the leftovers is feasable
+		-- Any units that aren't transports and aren't attached send back to pool
     local pool
     if platoon.PlatoonData.BuilderName and platoon.PlatoonData.LocationType then
         pool = aiBrain:GetPlatoonUniquelyNamed(platoon.PlatoonData.LocationType..'_LeftoverUnits')
@@ -128,9 +168,9 @@ function GetLoadTransports(platoon)
         pool = aiBrain:GetPlatoonUniquelyNamed('ArmyPool')
     end
 	
-	-- Self-destruct any left-overs
+	-- For now we self-destruct any leftovers
     for _, unit in unitsToDrop do
-        if not unit.Dead and not unit:IsUnitState('Attached') then --and platoon.PlatoonData.SelfDestructLeftovers then
+        if not unit.Dead and not unit:IsUnitState('Attached') then
 			unit:Kill()
             --aiBrain:AssignUnitsToPlatoon(pool, {unit}, 'Unassigned', 'None')
         end
@@ -175,26 +215,26 @@ function SortUnitsOnTransports(transportTable, unitTable, numSlots)
                 end
             end
             if transSlotNum > 0 then
-                table.insert(transportTable[transSlotNum].Units, unit)
-                if unit:GetBlueprint().Transport.TransportClass == 3 and remainingLarge >= 1 then
+                TableInsert(transportTable[transSlotNum].Units, unit)
+                if unit.Blueprint.Transport.TransportClass == 3 and remainingLarge >= 1 then
                     transportTable[transSlotNum].LargeSlots = transportTable[transSlotNum].LargeSlots - 1
                     transportTable[transSlotNum].MediumSlots = transportTable[transSlotNum].MediumSlots - 2
                     transportTable[transSlotNum].SmallSlots = transportTable[transSlotNum].SmallSlots - 4
-                elseif unit:GetBlueprint().Transport.TransportClass == 2 and remainingMed > 0 then
+                elseif unit.Blueprint.Transport.TransportClass == 2 and remainingMed > 0 then
                     if transportTable[transSlotNum].LargeSlots > 0 then
                         transportTable[transSlotNum].LargeSlots = transportTable[transSlotNum].LargeSlots - .5
                     end
                     transportTable[transSlotNum].MediumSlots = transportTable[transSlotNum].MediumSlots - 1
                     transportTable[transSlotNum].SmallSlots = transportTable[transSlotNum].SmallSlots - 2
-                elseif unit:GetBlueprint().Transport.TransportClass == 1 and remainingSml > 0 then
+                elseif unit.Blueprint.Transport.TransportClass == 1 and remainingSml > 0 then
                     transportTable[transSlotNum].SmallSlots = transportTable[transSlotNum].SmallSlots - 1
                 elseif remainingSml > 0 then
                     transportTable[transSlotNum].SmallSlots = transportTable[transSlotNum].SmallSlots - 1
                 else
-                    table.insert(leftoverUnits, unit)
+                    TableInsert(leftoverUnits, unit)
                 end
             else
-                table.insert(leftoverUnits, unit)
+                TableInsert(leftoverUnits, unit)
             end
         end
     end
@@ -203,11 +243,27 @@ end
 
 --- Utility Function
 --- Function that gets the correct number of transports for a platoon
+--- "campaign-ai".lua and "AttackManager.lua" have been modified to cache the platoon's base of origin, it should pick transports only built by the platoon's base
+--- In case something goes wrong, we fall back to the default 'TransportPool' platoon to grab transports from
 ---@param platoon Platoon
 ---@return number
 function GetTransportsThread(platoon)
     local data = platoon.PlatoonData
     local aiBrain = platoon:GetBrain()
+	local poolName
+	
+	-- If base name is specified in platoon data, pick that first over actual base of origin (LocationType)
+	local BaseName = data.BaseName or platoon.LocationType
+	
+	if BaseName then 
+		poolName = BaseName .. '_TransportPool'
+	else
+		poolName = 'TransportPool'
+	end
+	
+	--local DebugPlatoonName = platoon.BuilderName or data.PlatoonName
+	--SPEW('Platoon detected with name: ' .. repr(DebugPlatoonName) .. ', and base: ' .. repr(BaseName))
+	--SPEW('Platoon is attempting to grab transports from: ' .. repr(poolName))
 
     local neededTable = GetNumTransports(platoon)
     local numTransports = 0
@@ -218,11 +274,7 @@ function GetTransportsThread(platoon)
     local transSlotTable = {}
 
     if transportsNeeded then
-        local pool = aiBrain:GetPlatoonUniquelyNamed('TransportPool')
-        if not pool then
-            pool = aiBrain:MakePlatoon('None', 'None')
-            pool:UniquelyNamePlatoon('TransportPool')
-        end
+        local pool = aiBrain:GetPlatoonUniquelyNamedOrMake(poolName)
         while transportsNeeded do
             neededTable = GetNumTransports(platoon)
             -- Make sure more are needed
@@ -272,7 +324,7 @@ function GetTransportsThread(platoon)
                         local unitPos = unit:GetPosition()
                         local curr = {Unit=unit, Distance=VDist2(unitPos[1], unitPos[3], location[1], location[3]),
                                        Id = unit.UnitId}
-                        table.insert(transports, curr)
+                        TableInsert(transports, curr)
                     end
                 end
                 if not table.empty(transports) then
@@ -360,58 +412,73 @@ function GetNumTransports(platoon)
         Medium = 0,
         Large = 0,
     }
-    local transportClass
     for _, v in platoon:GetPlatoonUnits() do
-        transportClass = v:GetBlueprint().Transport.TransportClass
-        if transportClass == 1 then
-            transportNeeded.Small = transportNeeded.Small + 1
-        elseif transportClass == 2 then
-            transportNeeded.Medium = transportNeeded.Medium + 1
-        elseif transportClass == 3 then
-            transportNeeded.Large = transportNeeded.Large + 1
-        else
-            transportNeeded.Small = transportNeeded.Small + 1
-        end
+		if not v.Dead then
+			if v.Blueprint.Transport.TransportClass == 1 then
+				transportNeeded.Small = transportNeeded.Small + 1
+			elseif v.Blueprint.Transport.TransportClass == 2 then
+				transportNeeded.Medium = transportNeeded.Medium + 1
+			elseif v.Blueprint.Transport.TransportClass == 3 then
+				transportNeeded.Large = transportNeeded.Large + 1
+			else
+				transportNeeded.Small = transportNeeded.Small + 1
+			end
+		end
     end
 
     return transportNeeded
 end
 
 --- Utility Function
---- Returns the number of slots the transport has available
----@param unit Unit
----@return table
-function GetNumTransportSlots(unit)
-    local bones = {
-        Large = 0,
-        Medium = 0,
-        Small = 0,
-    }
+--- Takes transports in platoon, returns them to pool, flys them back to return location
+---@param platoon Platoon
+---@param data table
+function ReturnTransportsToPool(platoon, data)
+    -- Put transports back in TPool
+    local aiBrain = platoon:GetBrain()
+    local transports = platoon:GetSquadUnits('Scout')
+	local poolName
+	
+	-- If base name is specified in platoon data, pick that first over actual base of origin (LocationType)
+	local BaseName = data.BaseName or platoon.LocationType
+	
+	if BaseName then 
+		poolName = BaseName .. '_TransportPool'
+	else
+		poolName = 'TransportPool'
+	end
 
-    -- compute count based on bones
-    for i = 1, unit:GetBoneCount() do
-        if unit:GetBoneName(i) ~= nil then
-            if string.find(unit:GetBoneName(i), 'Attachpoint_Lrg') then
-                bones.Large = bones.Large + 1
-            elseif string.find(unit:GetBoneName(i), 'Attachpoint_Med') then
-                bones.Medium = bones.Medium + 1
-            elseif string.find(unit:GetBoneName(i), 'Attachpoint') then
-                bones.Small = bones.Small + 1
+    if table.empty(transports) then
+        return
+    end
+
+    aiBrain:AssignUnitsToPlatoon(poolName, transports, 'Scout', 'None')
+
+    -- If a route or chain was given, reverse it on return
+    if data.TransportRoute then
+        for i = table.getn(data.TransportRoute), 1, -1 do
+            if type(data.TransportRoute[i]) == 'string' then
+                IssueMove(transports, ScenarioUtils.MarkerToPosition(data.TransportRoute[i]))
+            else
+                IssueMove(transports, data.TransportRoute[i])
             end
+        end
+        -- If a route chain was given, reverse the route on return
+    elseif data.TransportChain then
+        local transPositionChain = ScenarioUtils.ChainToPositions(data.TransportChain)
+        for i = table.getn(transPositionChain), 1, -1 do
+            IssueMove(transports, transPositionChain[i])
         end
     end
 
-    -- retrieve number of slots set by blueprint, if it is set
-    local largeSlotsByBlueprint = unit.Blueprint.Transport.SlotsLarge or bones.Large 
-    local mediumSlotsByBlueprint = unit.Blueprint.Transport.SlotsMedium or bones.Medium 
-    local smallSlotsByBlueprint = unit.Blueprint.Transport.SlotsSmall or bones.Small 
-
-    -- take the minimum of the two
-    bones.Large = math.min(bones.Large, largeSlotsByBlueprint)
-    bones.Medium = math.min(bones.Medium, mediumSlotsByBlueprint)
-    bones.Small = math.min(bones.Small, smallSlotsByBlueprint)
-
-    return bones
+    -- Return to Transport Return position
+    if data.TransportReturn then
+        if type(data.TransportReturn) == 'string' then
+            IssueMove(transports, ScenarioUtils.MarkerToPosition(data.TransportReturn))
+        else
+            IssueMove(transports, data.TransportReturn)
+        end
+    end
 end
 
 -- kept for mod backwards compatibility
