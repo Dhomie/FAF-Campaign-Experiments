@@ -101,6 +101,30 @@ end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
+---@param tech integer
+---@return boolean
+function TransportsTechAllowed(aiBrain, baseName, tech)
+    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].TransportsTech >= tech
+end
+
+---@param aiBrain AIBrain
+---@param baseName string
+---@return boolean
+function NeedTransports(aiBrain, baseName)
+    if not aiBrain.BaseManagers[baseName] then
+		return false
+	end
+
+    local transportPool = aiBrain:GetPlatoonUniquelyNamed(baseName .. "_TransportPool")
+    if not transportPool then
+		return true 
+	end
+	
+    return aiBrain.BaseManagers[baseName].TransportsNeeded >= table.getn(transportPool:GetPlatoonUnits())
+end
+
+---@param aiBrain AIBrain
+---@param baseName string
 ---@return boolean
 function BaseActive(aiBrain, baseName)
 	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].Active
@@ -167,6 +191,23 @@ end
 ---@return boolean
 function NukesEnabled(aiBrain, baseName)
 	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Nukes
+end
+
+---@param aiBrain AIBrain
+---@param baseName string
+---@return boolean
+function TransportsEnabled(aiBrain, baseName)
+	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Transports
+end
+
+--- Checks if the specified functionality is enabled for a BaseManager instance
+--- This one is a universal function that could easily replace the 10 or so functions above with just 1 additional parameter
+---@param aiBrain AIBrain
+---@param baseName string
+---@param functionality string
+---@return boolean
+function BaseManagerFunctionalityEnabled(aiBrain, baseName, functionality)
+	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates[functionality]
 end
 
 --- Moved Unused Imports for mod compatibility
