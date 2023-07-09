@@ -8,15 +8,28 @@ local AIBuildUnits = import("/lua/ai/aibuildunits.lua")
 -- upvalue scope for performance
 local TableGetn = table.getn
 
-local CoopAIBrain = AIBrain
+local CampaignAIBrain = AIBrain
 
 --- A hook of the default FAF campaign AI brain with some modifications.
 --- Added functions that are not included in the basic AI brain type, those are required for some of the platoon functions found in platoon.lua
 ---@class CampaignAIBrain: AIBrain
 ---@field PBM AiPlatoonBuildManager
 ---@field IMAPConfig
-AIBrain = Class(CoopAIBrain) {
+AIBrain = Class(CampaignAIBrain) {
 
+	--- Called after `SetupSession` but before `BeginSession` - no initial units, props or resources exist at this point
+    ---@param self CampaignAIBrain
+    ---@param planName string
+	OnCreateAI = function(self, planName)
+		CampaignAIBrain.OnCreateAI(self, planName)
+		
+		-- 1 -> Disabled; 2 -> Enabled
+		if self.BrainType == 'AI' and ScenarioInfo.Options.CampaignAICheat == 2 then
+			LOG('Campaign AI cheats have been enabled, setting up cheat modifiers for use')
+			AIUtils.SetupCampaignCheat(self, true)
+		end
+	end,
+	
 	-- Main building and forming platoon thread for the Platoon Build Manager
     ---@param self CampaignAIBrain
     PlatoonBuildManagerThread = function(self)

@@ -120,7 +120,7 @@ BaseManager = Class(BaseManagerTemplate) {
         end
 		
 		-- A brief explanation on what was messed up with this previously that messed up enhancements with prerequisites
-			-- The first check is was what caused issues previously, it checks if there's already an upgrade on the slot our wanted enhancement wants to occupy	
+			-- The first check is what caused issues previously, it checks if there's already an upgrade on the slot our wanted enhancement wants to occupy	
 			-- "SimUnitEnhancements" is a global table that's created in "lua/SimSync.lua", and stores unit enhancements using the following data structure:
 			-- SimUnitEnhancements[unit.EntityId], an example of this:
 			--------------------------------
