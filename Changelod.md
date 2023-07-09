@@ -1,7 +1,12 @@
 Changelog
 
+# v6 (09.07.2023)
+- Added economy, and build power cheat options for AIs, they are applied to all AI armies, including allied ones.
+- Cleaned up the most commonly used *save.lua* files found in the lua/AI/OpAI folder, they contained a lot of duplicate data that weren't even used.
+
 # v5 (04.07.2023)
 - Fixed the BaseManager messing up ACU upgrades, for real this time
+- Fixed the BaseManager not considering its Engineers as dead if they were either reclaimed or captured.
 - AttackManager and PBM now cache their formed platoons' origin base.
 - With that, AIs should now only use transports to pick up land platoons units if their origin bases match.
 - Added the option to create unique transport platoons, and land platoons to pick unique transport platoons as well, just specify the 'BaseName' in PlatoonData
