@@ -23,7 +23,7 @@ function EngineerAttackChildCount(aiBrain, master)
 end
 
 --- Generic Master platoon count build condition that returns true if the amount of master platoons existing is 1 or more.
---- AKA 'Do we have the PBM Engineer platoon to form the AM platoon ?'
+--- AKA 'Do we have the PBM Engineer platoon(s) to form the AM platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string
 ---@return boolean
@@ -35,7 +35,7 @@ function EngineerAttackMasterCount(aiBrain, master)
 end
 
 --- Checks if the OpAI platoon's origin base's unique transport pool has less than 2 transports
---- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
+--- AKA 'Do we have enough transports to assume we can transport our Engineer platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@param locationName string default_location_type

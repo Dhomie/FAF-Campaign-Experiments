@@ -164,8 +164,8 @@ function LoadOSB(buildName, strArmy, builderData)
                             addCond[3][sNum] = spec.LocationType
                         elseif pVal == 'default_builder_name' then
                             addCond[3][sNum] = spec.BuilderName
-						elseif pVal == 'default_pool' then
-							addCond[3][sNum] = spec.LocationType .. '_TransportPool'
+                        elseif pVal == 'default_pool' then
+                            addCond[3][sNum] = spec.LocationType .. '_TransportPool'
                         elseif pVal == 'default_transport_count' then
                             if builderData.PlatoonData.TransportCount then
                                 addCond[3][sNum] = builderData.PlatoonData.TransportCount
@@ -199,8 +199,8 @@ function LoadOSB(buildName, strArmy, builderData)
                                 addCond[3][sNum] = spec.LocationType
                             elseif pVal == 'default_builder_name' then
                                 addCond[3][sNum] = spec.BuilderName
-							elseif pVal == 'default_transport_pool' then
-								addCond[3][sNum] = spec.LocationType .. '_TransportPool'
+	                        elseif pVal == 'default_transport_pool' then
+                                addCond[3][sNum] = spec.LocationType .. '_TransportPool'
                             elseif pVal == 'default_transport_count' then
                                 if builderData.PlatoonData.TransportCount then
                                     addCond[3][sNum] = builderData.PlatoonData.TransportCount
