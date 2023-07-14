@@ -9,6 +9,7 @@ local AIUtils = import("/lua/ai/aiutilities.lua")
 local AMPlatoonHelperFunctions = import("/lua/editor/amplatoonhelperfunctions.lua")
 local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
 local ScenarioPlatoonAI = import("/lua/scenarioplatoonai.lua")
+local AIBehaviors = import("/lua/ai/aibehaviors.lua")
 local SUtils = import("/lua/ai/sorianutilities.lua")
 local TriggerFile = import("/lua/scenariotriggers.lua")
 local Buff = import("/lua/sim/buff.lua")
@@ -689,18 +690,39 @@ function BaseManagerEngineerThread(platoon)
     platoon:MoveToLocation(tempPos, false)
 end
 
+--- Assigns the units of the given platoon into new single unit platoons, and sets the 'BaseManagerTMLAI' as their platoon AI function
+--- Also copies over the platoon data, which we require to determine if the unit's BaseManager is allowed to use the TML
+---@param platoon Platoon
+function BaseManagerTMLPlatoon(platoon)
+    local aiBrain = platoon:GetBrain()
+    local TMLs = platoon:GetPlatoonUnits()
+	
+	if not aiBrain.BaseManagers[platoon.PlatoonData.BaseName] then
+        aiBrain:DisbandPlatoon(platoon)
+    end
+	
+	for _, launcher in TMLs do
+		if not launcher.Dead then
+			local launcherPlatoon = aiBrain:MakePlatoon('', '')
+            aiBrain:AssignUnitsToPlatoon(launcherPlatoon, {launcher}, 'Attack', 'None')
+            launcherPlatoon.PlatoonData = table.deepcopy(platoon.PlatoonData)
+            launcherPlatoon:ForkAIThread(BaseManagerTMLAI)
+		end
+	end
+
+	aiBrain:DisbandPlatoon(platoon)
+end
+
 ---@param platoon Platoon
 function BaseManagerTMLAI(platoon)
     local aiBrain = platoon:GetBrain()
 	local baseName = platoon.PlatoonData.BaseName
-    local bManager = aiBrain.BaseManagers[baseName]
     local unit = platoon:GetPlatoonUnits()[1]
-    unit.BaseName = baseName
 
     if not unit then return end
 
     platoon:Stop()
-	local maxRadius = unit:GetBlueprint().Weapon[1].MaxRadius
+	local maxRadius = unit.Blueprint.Weapon[1].MaxRadius
 
     local simpleTargetting = true
     if ScenarioInfo.Options.Difficulty == 3 then
@@ -714,14 +736,14 @@ function BaseManagerTMLAI(platoon)
         categories.EXPERIMENTAL,
         categories.ENERGYPRODUCTION,
         categories.STRUCTURE,
-        categories.TECH3 * categories.MOBILE})
+        categories.TECH3 * categories.MOBILE}
+	)
 
     while aiBrain:PlatoonExists(platoon) do
         if BMBC.TMLsEnabled(aiBrain, baseName) then
             local target = false
-            local blip = false
             while unit:GetTacticalSiloAmmoCount() < 1 or not target do
-                WaitSeconds(7)
+                WaitSeconds(5)
                 target = false
                 while not target do
                     target = platoon:FindPrioritizedUnit('Attack', 'Enemy', true, unit:GetPosition(), maxRadius)
@@ -730,7 +752,7 @@ function BaseManagerTMLAI(platoon)
                         break
                     end
 
-                    WaitSeconds(3)
+                    WaitSeconds(5)
 
                     if not aiBrain:PlatoonExists(platoon) then
                         return
@@ -748,12 +770,62 @@ function BaseManagerTMLAI(platoon)
                 end
             end
         end
-        WaitSeconds(3)
+        WaitSeconds(5)
     end
+end
+
+--- Assigns the units of the given platoon into new single unit platoons, and sets the 'BaseManagerNukeAI' as their platoon AI function
+--- Also copies over the platoon data, which we require to determine if the unit's BaseManager is allowed to use the SML
+---@param platoon Platoon
+function BaseManagerNukePlatoon(platoon)
+    local aiBrain = platoon:GetBrain()
+    local SMLs = platoon:GetPlatoonUnits()
+	
+	if not aiBrain.BaseManagers[platoon.PlatoonData.BaseName] then
+        aiBrain:DisbandPlatoon(platoon)
+    end
+	
+	for _, silo in SMLs do
+		if not silo.Dead then
+			local siloPlatoon = aiBrain:MakePlatoon('', '')
+            aiBrain:AssignUnitsToPlatoon(siloPlatoon, {silo}, 'Support', 'None')
+            siloPlatoon.PlatoonData = table.deepcopy(platoon.PlatoonData)
+            siloPlatoon:ForkAIThread(BaseManagerNukeAI)
+		end
+	end
+
+	aiBrain:DisbandPlatoon(platoon)
 end
 
 ---@param platoon Platoon
 function BaseManagerNukeAI(platoon)
+	local aiBrain = platoon:GetBrain()
+	local baseName = platoon.PlatoonData.BaseName
+    local unit = platoon:GetPlatoonUnits()[1]
+	
+	if not unit then return end
+	
+	platoon:Stop()
+	
+	unit:SetAutoMode(true)
+    while aiBrain:PlatoonExists(platoon) do
+		if BMBC.NukesEnabled(aiBrain, baseName) then
+			while unit:GetNukeSiloAmmoCount() < 1 do
+				WaitSeconds(15)
+				if not aiBrain:PlatoonExists(platoon) then
+					return
+				end
+			end
+
+			nukePos = AIBehaviors.GetHighestThreatClusterLocation(aiBrain, unit)
+			if nukePos then
+				IssueNuke({unit}, nukePos)
+				WaitSeconds(15)
+				IssueClearCommands({unit})
+			end
+		end
+		WaitSeconds(10)
+    end
 end
 
 ---@param platoon Platoon

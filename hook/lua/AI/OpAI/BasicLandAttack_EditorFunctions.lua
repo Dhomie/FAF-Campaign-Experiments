@@ -4,11 +4,21 @@
 -- Summary  : Generic AI Platoon Build Conditions. Build conditions always return true or false
 -- Copyright © 2005 Gas Powered Games, Inc.  All rights reserved.
 ----------------------------------------------------------------------------------------------------
-
-local AIUtils = import("/lua/ai/aiutilities.lua")
 local ScenarioFramework = import("/lua/scenarioframework.lua")
 
---- BasicLandAttackChildCountDifficulty = BuildCondition   doc = "Please work function docs."
+--- Some context information:
+--- AttackManager -> AM for short
+--- PlatoonBuildManager -> PBM for short
+--- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
+--- 'Child' platoons -> PBM platoons that are built by factories
+--- Platoon counts usually are: 1, 2, or 3, depending on the difficulty
+
+--- NOTE: This file is used by SCFA's BaseOpAI, which allows customization of what OpAI platoon we want to assemble
+--- So, platoon counts can be set by mission creators, but if they are not set, we fall back to some default values instead
+
+--- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
+--- AKA 'Do we need more PBM platoons ?'
+--- SCFA's BaseOpAI filters out platoons by allowed 'child' unit types, any unallowed ones' platoon builder is either removed from the PBM, or receive an additional 'False' build condition from MiscBuildConditions.lua
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@return boolean
@@ -20,7 +30,8 @@ function BasicLandAttackChildCountDifficulty(aiBrain, master)
     return counter < number
 end
 
---- BasicLandAttackMasterCountDifficulty = BuildCondition   doc = "Please work function docs."
+--- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
+--- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@return boolean
@@ -32,16 +43,26 @@ function BasicLandAttackMasterCountDifficulty(aiBrain, master)
     return counter >= number
 end
 
+--- Checks if the OpAI platoon has the 'Transports' functionality enabled, returns true if its origin base has less than 5 transports in its unique transport pool
+--- AKA 'Am I allowed to build transports, if so, do I have enough of them ?'
+--- NOTE: The functionality can be enabled by using the 'OpAI:SetFunctionStatus(funcName, bool)' on an OpAI instance, example: OpAI:SetFunctionStatus('Transports', true)
 ---@param aiBrain AIBrain
 ---@param masterName string
 ---@param locationName Vector
 ---@return boolean
 function NeedTransports(aiBrain, masterName, locationName)
-    if not ScenarioInfo.OSPlatoonCounter[masterName .. "_Transports"] then
+	-- If we didn't enable transport functionality for our OpAI platoon, return false
+	if not ScenarioInfo.OSPlatoonCounter[masterName .. "_Transports"] then
         return false
     end
-    local pos = aiBrain:PBMGetLocationCoords(locationName)
-    local radius = 100000
-    local units = AIUtils.GetOwnUnitsAroundPoint(aiBrain, categories.TRANSPORTATION, pos, radius)
-    return table.getn(units) < 5
+	
+	local poolName = 'TransportPool'
+	
+	if locationName then
+		poolName = locationName .. '_TransportPool'
+	end
+	
+    local transportPool = aiBrain:GetPlatoonUniquelyNamed(poolName)
+	
+    return not(transportPool and table.getn(transportPool:GetPlatoonUnits()) > 5) 
 end

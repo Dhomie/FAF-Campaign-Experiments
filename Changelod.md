@@ -1,4 +1,11 @@
 Changelog
+# v7 (14.07.2023)
+- Added an option to allow AIs to use T3 Strategic Missile Launcher structures. This can mess with SMLs that are controlled via map script, so enable it at your own risk!
+- BaseManager now assigns TMLs and SMLs into new platoons, allowing it to use any number inside the base's radius.
+- Added AI functionality for SMLs, which can be enabled/disabled any time via the corresponding BaseManager funcionality
+- Cleaned up of the files found in the lua/AI/OpAI folder that were used by non-reworked SC1 campaign maps.
+- Fixed non-reworked SC1 campaign maps' AIs not working properly (caused by some platoon AI function rewrites)
+- Misc. changes, code cleanups, bug fixes.
 
 # v6 (09.07.2023)
 - Added economy, and build power cheat options for AIs, they are applied to all AI armies, including allied ones.

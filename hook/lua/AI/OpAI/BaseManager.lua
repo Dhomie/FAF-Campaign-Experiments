@@ -12,6 +12,7 @@
 ---		- TMLs and SMLs only receive 1 ammo after spawning
 ---		- Fixed ACUs and sACUs removing prerequisite enhancements
 ---		- Added default transport platoons, along with the corresponding BaseManager functionality, courtesy of 4z0t for the idea
+---		- TMLs and SMLs are now used if they are inside the radius of a base that has their functionalities enabled
 
 
 local BaseManagerTemplate = BaseManager
@@ -92,7 +93,8 @@ BaseManager = Class(BaseManagerTemplate) {
 		self:LoadDefaultBaseTransports()
     end,
 	
-	-- Determines if a specific unit needs upgrades, returns name of upgrade if needed
+	--- Determines if a specific unit needs upgrades, returns name of upgrade if needed
+	--- The terms 'upgrade' and 'enhancement' mean the same here
     ---@param self BaseManager
     ---@param unit Unit
     ---@param unitType string
@@ -118,44 +120,25 @@ BaseManager = Class(BaseManagerTemplate) {
         if not allEnhancements then
             return false
         end
-		
-		-- A brief explanation on what was messed up with this previously that messed up enhancements with prerequisites
-			-- The first check is what caused issues previously, it checks if there's already an upgrade on the slot our wanted enhancement wants to occupy	
-			-- "SimUnitEnhancements" is a global table that's created in "lua/SimSync.lua", and stores unit enhancements using the following data structure:
-			-- SimUnitEnhancements[unit.EntityId], an example of this:
-			--------------------------------
-			-- Unit: -LCH: Left arm upgrade
-			--	 	 -Back: Back upgrade
-			--		 -RCH: Right arm upgrade
-			--------------------------------
-	
-			-- So, for example, SimUnitEnhancements[unit.EntityId]['LCH'] is the name of a left arm upgrade the unit currently has, or nil
-			-- Previous iteration of this didn't check if the name of this enhancement was actually a prerequisite, so it just removed the enhancement, and then tried to recreate it,
-			-- practically getting stuck in an infinite loop of upgrading
-			-- For example: 'ShieldHeavy' 	-> our desired enhancement,
-			--				'Shield' 		-> its prerequisite
-			-- 'Shield' is created, then we need to create 'ShieldHeavy', however 'Shield' occupies the slot 'ShieldHeavy' wants, so we remove 'Shield'
-			-- But we need 'Shield' for 'ShieldHeavy', so we create it again, etc. We end up in an infinite loop.
 			
-		-- So, we check if the occupied slot has the prerequisite upgrade, if it has something else, ONLY then we remove it.
         for _, upgradeName in upgradeTable do
             -- Find the upgrade in the unit's bp
             local bpUpgrade = allEnhancements[upgradeName]
             if bpUpgrade then
                 if not unit:HasEnhancement(upgradeName) then
-					-- If we already have an enhancement at the desired slot, check if it's a prerequisite first
+					-- Check if we already have an enhancement on the slot our desired enhancement wants to occupy
 					if SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
-						-- If it's the prerequisite enhancement, return upgrade name
+						-- If it's a prerequisite enhancement, return upgrade name
 						if bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
 							return upgradeName
-						-- Remove the enhancement, it's not a prerequisite
+						-- It's not a prerequisite, remove the enhancement
 						else
 							return SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] .. 'Remove'
 						end
-					-- Check for required upgrades
+					-- Check if our desired enhancement has any prerequisites, and return its name
 					elseif bpUpgrade.Prerequisite and not unit:HasEnhancement(bpUpgrade.Prerequisite) then
                         return bpUpgrade.Prerequisite
-                    -- No requirement and stop available, return upgrade name
+                    -- No requirement and no enhancement occupying our desired slot, return the upgrade name
                     else
                         return upgradeName
                     end
@@ -307,6 +290,48 @@ BaseManager = Class(BaseManagerTemplate) {
 	end,
 	
 	---@param self BaseManager
+    LoadDefaultBaseTMLs = function(self)
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_TMLPlatoon_' .. self.BaseName,
+            PlatoonTemplate = self:CreateTMLPlatoonTemplate(),
+            Priority = 300,
+            PlatoonType = 'Any',
+            RequiresConstruction = false,
+            LocationType = self.BaseName,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerTMLPlatoon' },
+            BuildConditions = {
+                { BMBC, 'BaseActive', { self.BaseName } },
+                { BMBC, 'TMLsEnabled', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+
+    ---@param self BaseManager
+    LoadDefaultBaseNukes = function(self)
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_NukePlatoon_' .. self.BaseName,
+            PlatoonTemplate = self:CreateNukePlatoonTemplate(),
+            Priority = 400,
+            PlatoonType = 'Any',
+            RequiresConstruction = false,
+            LocationType = self.BaseName,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerNukePlatoon' },
+            BuildConditions = {
+                { BMBC, 'BaseActive', { self.BaseName } },
+                { BMBC, 'NukesEnabled', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+	
+	---@param self BaseManager
     LoadDefaultBaseTransports = function(self)
         local faction = self.AIBrain:GetFactionIndex()
         for tech = 1, 2 do
@@ -327,7 +352,6 @@ BaseManager = Class(BaseManagerTemplate) {
                 PlatoonData = {
                     BaseName = self.BaseName,
                 },
-                InstanceCount = 2,
             }
         end
         if faction ~= 1 then return end
@@ -351,7 +375,6 @@ BaseManager = Class(BaseManagerTemplate) {
             PlatoonData = {
                 BaseName = self.BaseName,
             },
-            InstanceCount = 2,
         }
     end,
 

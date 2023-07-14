@@ -1,9 +1,8 @@
 name = "Coop AI Adjustments"
-uid = "coop_ai_mod_v6"
-version = 6
+uid = "coop_ai_mod_v7"
+version = 7
 copyright = "MIT License"
-description = "Campaign AI fixes, adjustmenst, and QoL changes, still WIP."
-icon = ""
+description = "Campaign AI fixes, adjustments, additions, and QoL changes, still WIP."
 author = "Dhomie"
 selectable = true
 enabled = true

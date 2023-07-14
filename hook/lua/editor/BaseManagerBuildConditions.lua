@@ -190,7 +190,8 @@ end
 ---@param baseName string
 ---@return boolean
 function NukesEnabled(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Nukes
+	-- Nuke Lobby Option: 1 -> Disabled; 2 -> Enabled
+	return (aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Nukes) or (ScenarioInfo.Options.CampaignAINukes and ScenarioInfo.Options.CampaignAINukes == 2)
 end
 
 ---@param aiBrain AIBrain
