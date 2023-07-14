@@ -12,6 +12,28 @@ local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
 
 local TableInsert = table.insert
 
+--- Utility Function
+--- Check all factories in given table to see if there is imbalance
+---@param factoryTable table
+---@return boolean
+function CheckFactoryAssistBalance(factoryTable)
+	if not factoryTable or table.empty(factoryTable) then return false end
+    local facLowNum = -1
+    local facHighNum = 0
+    for facNum, facData in factoryTable do
+        if facLowNum == -1 or facData.NumEngs < facLowNum then
+            facLowNum = facData.NumEngs
+        end
+        if facData.NumEngs > facHighNum then
+            facHighNum = facData.NumEngs
+        end
+    end
+    if facHighNum - facLowNum > 1 then
+        return true
+    end
+    return false
+end
+
 --- Transfers the platoon's units to the specified transport platoon, or the universal 'TransportPool' if no base is specified
 --- Other platoons then can use the transport platoon to get to specified locations
 --- - TransportMoveLocation - Location to move transport to before assigning to transport pool

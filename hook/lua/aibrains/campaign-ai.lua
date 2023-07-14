@@ -24,10 +24,12 @@ AIBrain = Class(CampaignAIBrain) {
 		CampaignAIBrain.OnCreateAI(self, planName)
 		
 		-- 1 -> Disabled; 2 -> Enabled
-		if self.BrainType == 'AI' and ScenarioInfo.Options.CampaignAICheat == 2 then
+		if ScenarioInfo.Options.CampaignAICheat and ScenarioInfo.Options.CampaignAICheat == 2 then
 			LOG('Campaign AI cheats have been enabled, setting up cheat modifiers for use')
 			AIUtils.SetupCampaignCheat(self, true)
 		end
+		
+		self.FactoryAssistList = {}
 	end,
 	
 	-- Main building and forming platoon thread for the Platoon Build Manager
@@ -139,7 +141,7 @@ AIBrain = Class(CampaignAIBrain) {
                         end
                     end
                 end
-                -- WaitSeconds(.1)
+                WaitSeconds(0.1)
             end
             -- Do it all over again in 15 seconds.
             WaitSeconds(self.PBM.BuildCheckInterval or 15)

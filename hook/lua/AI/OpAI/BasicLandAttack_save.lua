@@ -1476,17 +1476,18 @@ Scenario = {
                         },
                         ChildrenType = {'MobileMissilePlatforms', 'MobileShields', 'HeavyBots', 'MobileFlak'},
                     },
+					
                     -- TRANSPORTS --
                     ['OSB_Child_BasicLandAttack_T3Transports'] =  {
                         PlatoonTemplate = 'OST_BasicLandAttack_T3Transports',
                         Priority = 500,
-                        InstanceCount = 2,
+                        InstanceCount = 1,
                         LocationType = 'MAIN',
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'TransportPool', {'default_platoon'} },
                         BuildConditions = {
-                            [0] = {'/lua/ai/opai/BasicLandAttack_editorfunctions.lua', 'NeedTransports', {'default_brain','default_master', 'default_location_type'} },
+                            [0] = {'/lua/ai/opai/BasicLandAttack_editorfunctions.lua', 'NeedTransports', {'default_brain', 'default_master', 'default_location_type'} },
                             [1] = {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 0 } },
                         },
                         PlatoonData = {
@@ -1496,13 +1497,13 @@ Scenario = {
                     ['OSB_Child_BasicLandAttack_T2Transports'] =  {
                         PlatoonTemplate = 'OST_BasicLandAttack_T2Transports',
                         Priority = 498,
-                        InstanceCount = 2,
+                        InstanceCount = 1,
                         LocationType = 'MAIN',
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'TransportPool', {'default_platoon'} },
                         BuildConditions = {
-                            [0] = {'/lua/ai/opai/BasicLandAttack_editorfunctions.lua', 'NeedTransports', {'default_brain','default_master', 'default_location_type'} },
+                            [0] = {'/lua/ai/opai/BasicLandAttack_editorfunctions.lua', 'NeedTransports', {'default_brain' ,'default_master', 'default_location_type'} },
                         },
                         PlatoonData = {
                         },
@@ -1511,24 +1512,18 @@ Scenario = {
                     ['OSB_Child_BasicLandAttack_T1Transports'] =  {
                         PlatoonTemplate = 'OST_BasicLandAttack_T1Transports',
                         Priority = 492,
-                        InstanceCount = 2,
+                        InstanceCount = 1,
                         LocationType = 'MAIN',
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'TransportPool', {'default_platoon'} },
                         BuildConditions = {
-                            [0] = {'/lua/ai/opai/BasicLandAttack_editorfunctions.lua', 'NeedTransports', {'default_brain','default_master', 'default_location_type'} },
+                            [0] = {'/lua/ai/opai/BasicLandAttack_editorfunctions.lua', 'NeedTransports', {'default_brain', 'default_master', 'default_location_type'} },
                         },
                         PlatoonData = {
                         },
                         ChildrenType = {'T1Transports'},
                     },
-
-
-
-
-
-
 
                     ['OSB_Master_BasicLandAttack'] =  {
                         PlatoonTemplate = 'OST_BLANK_TEMPLATE',
