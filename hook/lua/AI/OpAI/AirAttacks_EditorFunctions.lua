@@ -30,7 +30,7 @@ function AirAttackChildCountDifficulty(aiBrain, master)
     return counter < number
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
+--- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master

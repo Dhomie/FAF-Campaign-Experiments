@@ -514,7 +514,6 @@ Scenario = {
                         BuildConditions = {
                             [0] = {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             [1] = {'/lua/ai/opai/basiclandattack_editorfunctions.lua', 'BasicLandAttackChildCountDifficulty', {'default_brain', 'default_master'} },
-                            [2] = {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 4} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1496,7 +1495,7 @@ Scenario = {
                     },
                     ['OSB_Child_BasicLandAttack_T2Transports'] =  {
                         PlatoonTemplate = 'OST_BasicLandAttack_T2Transports',
-                        Priority = 498,
+                        Priority = 495,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
                         PlatoonType = 'Air',
@@ -1511,7 +1510,7 @@ Scenario = {
                     },
                     ['OSB_Child_BasicLandAttack_T1Transports'] =  {
                         PlatoonTemplate = 'OST_BasicLandAttack_T1Transports',
-                        Priority = 492,
+                        Priority = 490,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
                         PlatoonType = 'Air',

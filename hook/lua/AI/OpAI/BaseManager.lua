@@ -14,7 +14,6 @@
 ---		- Added default transport platoons, along with the corresponding BaseManager functionality, courtesy of 4z0t for the idea
 ---		- TMLs and SMLs are now used if they are inside the radius of a base that has their functionalities enabled
 
-
 local BaseManagerTemplate = BaseManager
 local Factions = import('/lua/factions.lua').Factions
 
@@ -94,7 +93,8 @@ BaseManager = Class(BaseManagerTemplate) {
     end,
 	
 	--- Determines if a specific unit needs upgrades, returns name of upgrade if needed
-	--- The terms 'upgrade' and 'enhancement' mean the same here
+	--- Works with up to 3-level enhancement paths
+	--- TODO: Make a check that can deal with any number of prerequisites, like a 4-5-6 level enhancement path, example: ('Shield -> 'ShieldHeavy' -> 'ShieldVeryHeavy' ->'ShieldUltraHeavy' -> 'ShieldUltraBigHeavy')
     ---@param self BaseManager
     ---@param unit Unit
     ---@param unitType string
@@ -128,13 +128,20 @@ BaseManager = Class(BaseManagerTemplate) {
                 if not unit:HasEnhancement(upgradeName) then
 					-- Check if we already have an enhancement on the slot our desired enhancement wants to occupy
 					if SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
-						-- If it's a prerequisite enhancement, return upgrade name
-						if bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
+						-- Account for 3-level enhancements, like the Cybran ACU's recent *Stealth -> Self-Repair -> Cloak* enhancement path, if we want 'Cloak', check for 'Stealth' 
+						-- Check for the prerequisite's prerequisite, and return it
+						if bpUpgrade.Prerequisite and allEnhancements[bpUpgrade.Prerequisite].Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == allEnhancements[bpUpgrade.Prerequisite].Prerequisite) then
+							return bpUpgrade.Prerequisite
+						-- If it's a direct prerequisite enhancement, return upgrade name
+						elseif bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
 							return upgradeName
 						-- It's not a prerequisite, remove the enhancement
 						else
 							return SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] .. 'Remove'
 						end
+					-- Check if our desired enhancement's prerequisite has any prerequisites, and return its name (Prerequisiteception)
+					elseif bpUpgrade.Prerequisite and allEnhancements[bpUpgrade.Prerequisite].Prerequisite and not unit:HasEnhancement(allEnhancements[bpUpgrade.Prerequisite].Prerequisite) then
+						return allEnhancements[bpUpgrade.Prerequisite].Prerequisite
 					-- Check if our desired enhancement has any prerequisites, and return its name
 					elseif bpUpgrade.Prerequisite and not unit:HasEnhancement(bpUpgrade.Prerequisite) then
                         return bpUpgrade.Prerequisite
@@ -158,7 +165,7 @@ BaseManager = Class(BaseManagerTemplate) {
                 for k, v in self.UpgradeTable do
                     local unit = ScenarioInfo.UnitNames[armyIndex][v.UnitName]
                     if unit and not unit.Dead then
-						--Structure upgrading should take priority, so the check for unit.UnitBeingBuilt is not needed. This check is a lot more reliable to get factories to upgrade
+						-- Structure upgrading should take priority, so the check for unit.UnitBeingBuilt is not needed. This check is a lot more reliable to get factories to upgrade
 						if unit.UnitId ~= v.FinalUnit and not unit:IsBeingBuilt() and not unit:IsUnitState('Upgrading') then
                             self:ForkThread(self.BaseManagerUpgrade, unit, v.UnitName)
                         end
@@ -281,10 +288,14 @@ BaseManager = Class(BaseManagerTemplate) {
         end,
     },
 	
+	---@param self BaseManager
+	---@param val number
 	SetTransportsNeeded = function(self, val)
 		self.TransportsNeeded = val
 	end,
 	
+	---@param self BaseManager
+	---@param val number
 	SetTransportsTech = function(self, val)
 		self.TransportsTech = val
 	end,
@@ -377,7 +388,10 @@ BaseManager = Class(BaseManagerTemplate) {
             },
         }
     end,
-
+	
+	---@param self BaseManager
+	---@param techLevel number
+	---@param faction number
     CreateTransportPlatoonTemplate = function(self, techLevel, faction)
         faction = faction or self.AIBrain:GetFactionIndex()
         local template = {
@@ -394,6 +408,3 @@ BaseManager = Class(BaseManagerTemplate) {
         return template
     end,
 }
-
-
-

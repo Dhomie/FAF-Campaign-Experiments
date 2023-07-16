@@ -14,6 +14,7 @@ local TableInsert = table.insert
 
 --- Transfers the platoon's units to the specified transport platoon, or the universal 'TransportPool' if no base is specified
 --- Other platoons then can use the transport platoon to get to specified locations
+--- NOTE: Transports are assigned to the land platoon we want to transport, once their commands have been executed, they are reassigned to their original transport pool
 --- - TransportMoveLocation - Location to move transport to before assigning to transport pool
 --- - MoveRoute - List of locations to move to
 --- - MoveChain - Chain of locations to move
@@ -322,8 +323,7 @@ function GetTransportsThread(platoon)
                 for _, unit in pool:GetPlatoonUnits() do
                     if EntityCategoryContains(categories.TRANSPORTATION, unit) and not unit:IsUnitState('Busy') then
                         local unitPos = unit:GetPosition()
-                        local curr = {Unit=unit, Distance=VDist2(unitPos[1], unitPos[3], location[1], location[3]),
-                                       Id = unit.UnitId}
+                        local curr = {Unit = unit, Distance = VDist2(unitPos[1], unitPos[3], location[1], location[3]), Id = unit.UnitId}
                         TableInsert(transports, curr)
                     end
                 end
@@ -430,7 +430,7 @@ function GetNumTransports(platoon)
 end
 
 --- Utility Function
---- Takes transports in platoon, returns them to pool, flys them back to return location
+--- Takes transports in platoon, returns them to pool, flies them back to return location
 ---@param platoon Platoon
 ---@param data table
 function ReturnTransportsToPool(platoon, data)

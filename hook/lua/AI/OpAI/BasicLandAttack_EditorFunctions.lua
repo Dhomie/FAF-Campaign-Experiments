@@ -30,7 +30,7 @@ function BasicLandAttackChildCountDifficulty(aiBrain, master)
     return counter < number
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
+--- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
@@ -52,7 +52,7 @@ end
 ---@return boolean
 function NeedTransports(aiBrain, masterName, locationName)
 	-- If we didn't enable transport functionality for our OpAI platoon, return false
-	if not ScenarioInfo.OSPlatoonCounter[masterName .. "_Transports"] then
+	if not ScenarioInfo.OSPlatoonCounter[masterName .. '_Transports'] then
         return false
     end
 	
