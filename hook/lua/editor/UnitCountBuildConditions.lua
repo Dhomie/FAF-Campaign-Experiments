@@ -122,9 +122,9 @@ function NumUnitsLessNearBase(aiBrain, baseName, category, num)
     if aiBrain.BaseTemplates[baseName].Location == nil then
         return false
     else
-        local unitList = aiBrain:GetUnitsAroundPoint(category,aiBrain.BaseTemplates[baseName].Location,aiBrain.BaseTemplates[baseName].Radius, 'Ally')
+        local unitList = aiBrain:GetUnitsAroundPoint(category, aiBrain.BaseTemplates[baseName].Location,aiBrain.BaseTemplates[baseName].Radius, 'Ally')
         local count = 0
-        for i,unit in unitList do
+        for i, unit in unitList do
             if unit:GetAIBrain() == aiBrain then
                 count = count + 1
             end

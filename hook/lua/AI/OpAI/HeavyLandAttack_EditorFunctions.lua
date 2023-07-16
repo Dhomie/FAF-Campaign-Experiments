@@ -69,7 +69,7 @@ function HeavyLandAttackChildDefensive(aiBrain, master)
 	return counter < num
 end
 
---- Generic Master platoon count build condition that returns true if the amount of master platoons existing is more or the same as desired.
+--- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 --- This AM platoon is assembled from a mix of Direct-Fire, Artillery, AA, and Mobile Shield/Stealth platoons.
 ---@param aiBrain AIBrain

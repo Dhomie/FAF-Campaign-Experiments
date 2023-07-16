@@ -1,9 +1,16 @@
 Changelog
+
+# v8 (16.07.2023)
+- Fixed non-reworked SC1 campaign maps' AIs building infinite amount of transports
+- Slightly adjusted the amount of units the AIs need to form platoons for non-reworked SC1 campaign maps.
+- Further cleaned up the files found in the lua/AI/OpAI folder that were used by non-reworked SC1 campaign maps.
+- Misc. changes, code cleanups.
+
 # v7 (14.07.2023)
 - Added an option to allow AIs to use T3 Strategic Missile Launcher structures. This can mess with SMLs that are controlled via map script, so enable it at your own risk!
 - BaseManager now assigns TMLs and SMLs into new platoons, allowing it to use any number inside the base's radius.
 - Added AI functionality for SMLs, which can be enabled/disabled any time via the corresponding BaseManager funcionality
-- Cleaned up of the files found in the lua/AI/OpAI folder that were used by non-reworked SC1 campaign maps.
+- Cleaned up the files found in the lua/AI/OpAI folder that were used by non-reworked SC1 campaign maps.
 - Fixed non-reworked SC1 campaign maps' AIs not working properly (caused by some platoon AI function rewrites)
 - Misc. changes, code cleanups, bug fixes.
 
@@ -36,5 +43,5 @@ Changelog
 - AI will self-destruct any leftover units from transport attacks that didn't get loaded in time.
 
 # v1 (06.2023)
-- Initial tests with platoon forming platoons
+- Initial tests with forming platoons
 - Added missing child type for the UEF 'Spreadhead' T3 MML

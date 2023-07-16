@@ -40,7 +40,7 @@ function LandAssaultMasterCountDifficulty(aiBrain, master)
 end
 
 --- Assigns platoon data if none is given for the Master platoon via some very scripted naming methods from the map's 'save.lua'
---- Otherwise this is just 'LandAssaultWithTransports()' platoon function from 'ScenarioPlatoonAI.lua'
+--- Otherwise this is just 'LandAssaultWithTransports' from 'ScenarioPlatoonAI.lua'
 ---@param platoon Platoon
 function LandAssaultAttack(platoon)
     local aiBrain = platoon:GetBrain()
@@ -81,18 +81,21 @@ end
 ---@return boolean
 function LandAssaultTransport(aiBrain, tCount, locationName)
 	local poolName = 'TransportPool'
-	local count = tCount or 4
+	local difficulty = ScenarioInfo.Options.Difficulty or 3
+	
+	-- 10/15/20 transports depending on the difficulty should be enough
+	local count = 5 + (5 * difficulty)
 	
 	if locationName then
 		poolName = locationName .. '_TransportPool'
 	end
 	
-    local transportPool = aiBrain:GetPlatoonUniquelyNamed(poolName)
+    local transportPool = aiBrain:GetPlatoonUniquelyNamedOrMake(poolName)
 	
-    return not(transportPool and table.getn(transportPool:GetPlatoonUnits()) > count) 
+    return count >= table.getn(transportPool:GetPlatoonUnits())
 end
 
---- See 'LandAssaultAttack()' for something similar, assigns 'TransportMoveLocation' platoon data if none was given
+--- Assigns TransportMoveLocation platoon data if none is given for the Master platoon via some very scripted naming methods from the map's 'save.lua'
 --- Otherwise this is just 'TransportPool' from 'ScenarioPlatoonAI.lua'
 ---@param platoon Platoon default_platoon
 function LandAssaultTransportThread(platoon)
