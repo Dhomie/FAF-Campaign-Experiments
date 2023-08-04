@@ -11,9 +11,8 @@ local ScenarioFramework = import("/lua/scenarioframework.lua")
 --- PlatoonBuildManager -> PBM for short
 --- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
 --- 'Child' platoons -> PBM platoons that are built by factories
---- Platoon counts usually are: 1, 2, or 3, depending on the difficulty
+--- Platoon counts by default are: 1, 2, or 3, depending on the difficulty
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain
 ---@param master string
@@ -26,7 +25,6 @@ function LightAirChildCountDifficulty(aiBrain, master)
 	return counter < num
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 ---@param aiBrain AIBrain
 ---@param master string

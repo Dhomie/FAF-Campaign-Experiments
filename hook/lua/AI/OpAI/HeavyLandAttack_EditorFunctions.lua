@@ -7,14 +7,11 @@
 local ScenarioFramework = import("/lua/scenarioframework.lua")
 
 --- Some context information:
---- AttackManager -> AM for short
---- PlatoonBuildManager -> PBM for short
 --- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
 --- 'Child' platoons -> PBM platoons that are built by factories
---- Platoon counts usually are: 1, 2, or 3, depending on the difficulty
+--- Platoon counts by default are: 1, 2, or 3, depending on the difficulty
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
---- AKA 'Do we need more of this platoon ?'
+--- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@return boolean
@@ -27,7 +24,6 @@ function HeavyLandAttackChildDirectFire(aiBrain, master)
     return counter < num
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more of this platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
@@ -41,8 +37,7 @@ function HeavyLandAttackChildArtillery(aiBrain, master)
 	return counter < num
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
---- AKA 'Do we need more of this platoon ?'
+--- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@return boolean
@@ -55,8 +50,7 @@ function HeavyLandAttackChildAntiAir(aiBrain, master)
 	return counter < num
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
---- AKA 'Do we need more of this platoon ?'
+--- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@return boolean
@@ -69,7 +63,6 @@ function HeavyLandAttackChildDefensive(aiBrain, master)
 	return counter < num
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 --- This AM platoon is assembled from a mix of Direct-Fire, Artillery, AA, and Mobile Shield/Stealth platoons.
 ---@param aiBrain AIBrain
@@ -103,5 +96,5 @@ function CheckDefensiveBuildable(aiBrain)
     local factories = aiBrain:GetListOfUnits(categories.FACTORY * categories.LAND * (categories.TECH3 + categories.TECH2), false)
 	local defensiveUnitIDs = {'uel0307', 'ual0307', 'url0306'} -- UEF = 1; Aeon = 2; Cybran = 3
 	
-	return (not table.empty(factories) and factories[1]:CanBuild(defensiveUnitIDs[facIndex]))
+	return not table.empty(factories) and factories[1]:CanBuild(defensiveUnitIDs[facIndex])
 end

@@ -7,16 +7,12 @@
 local ScenarioFramework = import("/lua/scenarioframework.lua")
 
 --- Some context information:
---- AttackManager -> AM for short
---- PlatoonBuildManager -> PBM for short
 --- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
 --- 'Child' platoons -> PBM platoons that are built by factories
---- Platoon counts usually are: 1, 2, or 3, depending on the difficulty
+--- Changed platoon counts to the default 1/2/3, previously it was 1/1/1 naval fleet, and 1/2/3 sub fleets 
 
---- The corresponding 'save.lua' has been slightly changed
 --- InstanceCounts for T2 Child platoons have been increased from 1 to 2, this should result in larger naval fleets
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more PBM platoons ?'
 --- NOTE: This was originally coded to set fleetNum to 1 in all cases, changed it to the default platoon count
 ---@param aiBrain AIBrain
@@ -30,7 +26,6 @@ function NavalFleetChildCountDifficulty(aiBrain, master)
     return fleetCounter < fleetNum
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain
 ---@param master string
@@ -43,7 +38,6 @@ function NavalSubChildCountDifficulty(aiBrain, master)
     return subsCounter < subsNum
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 --- This AM platoon is assembled from a mix of Submarine, and Surface Ship platoons
 ---@param aiBrain AIBrain

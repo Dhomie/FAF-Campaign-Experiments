@@ -8,12 +8,10 @@ local ScenarioFramework = import("/lua/scenarioframework.lua")
 local ScenarioPlatoonAI = import("/lua/scenarioplatoonai.lua")
 
 --- Some context information:
---- AttackManager -> AM for short
---- PlatoonBuildManager -> PBM for short
 --- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
 --- 'Child' platoons -> PBM platoons that are built by factories
+--- Platoon counts by default are: 3, 4, or 5, depending on the difficulty
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
@@ -26,7 +24,6 @@ function LandAssaultChildCountDifficulty(aiBrain, master)
 	return counter < number
 end
 
---- Generic Master platoon count build condition that returns true if the amount of master platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
 ---@param aiBrain AIBrain
 ---@param master string
@@ -73,7 +70,7 @@ function LandAssaultAttack(platoon)
     end
 end
 
---- Checks the unit count of the given transport platoon, returns false if it's less, coded to derive the platoon name from the PBM build location 'locationName'
+--- Checks the AI's transport count, returns true if it has less than desired transports in one of its transport pools
 --- AKA 'Do we have enough transports to assume we can transport our Master platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param tCount number[] default_transport_count
@@ -83,16 +80,20 @@ function LandAssaultTransport(aiBrain, tCount, locationName)
 	local poolName = 'TransportPool'
 	local difficulty = ScenarioInfo.Options.Difficulty or 3
 	
-	-- 10/15/20 transports depending on the difficulty should be enough
-	local count = 5 + (5 * difficulty)
+	-- 4/8/12 transports depending on the difficulty should be enough
+	local count = 4 * difficulty
 	
-	if locationName then
-		poolName = locationName .. '_TransportPool'
+	if not locationName then
+		error('*AI ERROR: LandAssaultTransport requires locationName parameter.', 2)
 	end
 	
-    local transportPool = aiBrain:GetPlatoonUniquelyNamedOrMake(poolName)
+	local poolName = locationName .. '_TransportPool'
 	
-    return count >= table.getn(transportPool:GetPlatoonUnits())
+	-- Get either the specific transport platoon, or the universal 'TransportPool' platoon
+    local transportPool = aiBrain:GetPlatoonUniquelyNamed(poolName) or aiBrain:GetPlatoonUniquelyNamed('TransportPool')
+	
+	-- Reverse logic, we want to return true if the platoon doesn't exist.
+    return not (transportPool and table.getn(transportPool:GetPlatoonUnits()) > count) 
 end
 
 --- Assigns TransportMoveLocation platoon data if none is given for the Master platoon via some very scripted naming methods from the map's 'save.lua'

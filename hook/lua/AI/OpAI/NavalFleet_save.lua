@@ -115,21 +115,15 @@ Scenario = {
                 Builders = {
                     ['OSB_Child_NavalFleet_Battleship_Group'] =  {
                         PlatoonTemplate = 'OST_Battleship_Group_Template',
-                        Priority = 299,
+                        Priority = 295,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
                         BuildTimeOut = -1,
                         PlatoonType = 'Sea',
                         RequiresConstruction = true,
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -141,21 +135,15 @@ Scenario = {
                     },
                     ['OSB_Child_NavalFleet_Destroyer_Group'] =  {
                         PlatoonTemplate = 'OST_Destroyer_Group_Template',
-                        Priority = 297,
+                        Priority = 285,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
                         BuildTimeOut = -1,
                         PlatoonType = 'Sea',
                         RequiresConstruction = true,
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -163,25 +151,19 @@ Scenario = {
                                 {type = 2, name = 'APPEND_FleetChildren',  value = 'OSB_Master_NavalFleet'},
                             }},
                         },
-                        ChildrenType = { 'Battleship', 'Destroyer', 'Frigate' },
+                        ChildrenType = { 'Destroyer', 'Frigate' },
                     },
                     ['OSB_Child_NavalFleet_Frigate_Group'] =  {
                         PlatoonTemplate = 'OST_Frigate_Group_Template',
-                        Priority = 296,
+                        Priority = 280,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
                         BuildTimeOut = -1,
                         PlatoonType = 'Sea',
                         RequiresConstruction = true,
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -199,31 +181,16 @@ Scenario = {
                         BuildTimeOut = -1,
                         PlatoonType = 'Any',
                         RequiresConstruction = false,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'PlatoonAttackClosestUnit',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'PlatoonAttackClosestUnit', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetMasterCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetMasterCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonBuildCallbacks = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMUnlockPlatoon',
-                                {'default_brain','default_platoon'},
-                                {'default_brain','default_platoon'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMUnlockPlatoon', {'default_brain','default_platoon'} },
                         },
                         PlatoonAddFunctions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMLockPlatoon',
-                                {'default_platoon'},
-                                {'default_platoon'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMLockPlatoon', {'default_platoon'} },
                         },
                         PlatoonData = {
                             {type = 3, name = 'AMMasterPlatoon',  value = true},
@@ -232,21 +199,15 @@ Scenario = {
                     },
                     ['OSB_Child_NavalFleet_Cruiser_Group'] =  {
                         PlatoonTemplate = 'OST_Cruiser_Group_Template',
-                        Priority = 298,
+                        Priority = 290,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
                         BuildTimeOut = -1,
                         PlatoonType = 'Sea',
                         RequiresConstruction = true,
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalFleetChildCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -258,21 +219,15 @@ Scenario = {
                     },
                     ['OSB_Child_NavalFleet_Subs_Group'] =  {
                         PlatoonTemplate = 'OST_Subs_Template',
-                        Priority = 295,
+                        Priority = 275,
                         InstanceCount = 3,
                         LocationType = 'MAIN',
                         BuildTimeOut = -1,
                         PlatoonType = 'Sea',
                         RequiresConstruction = true,
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalSubChildCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/navalfleet_editorfunctions.lua', 'NavalSubChildCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {

@@ -14,7 +14,14 @@
 ---@param varName string
 ---@return boolean
 function AMPlatoonsGreaterOrEqualVarTable(aiBrain, name, varName)
-	return ScenarioInfo.VarTable[varName] and ((aiBrain.AttackData.AMPlatoonCount[name] or 0) >= ScenarioInfo.VarTable[varName])
+	local counter = aiBrain.AttackData.AMPlatoonCount[name] or 0
+	local num = ScenarioInfo.VarTable[varName]
+	
+	if not num then
+		return false
+	end
+	
+	return counter >= num
 end
 
 ---@param aiBrain AIBrain
@@ -22,7 +29,14 @@ end
 ---@param varName string
 ---@return boolean
 function AMPlatoonsLessThanVarTable(aiBrain, name, varName)
-	return ScenarioInfo.VarTable[varName] and ((aiBrain.AttackData.AMPlatoonCount[name] or 0) < ScenarioInfo.VarTable[varName])
+	local counter = aiBrain.AttackData.AMPlatoonCount[name] or 0
+	local num = ScenarioInfo.VarTable[varName]
+	
+	if not num then
+		return false
+	end
+	
+	return counter < num
 end
 
 ---@param aiBrain AIBrain
@@ -30,7 +44,10 @@ end
 ---@param name2 string
 ---@return boolean
 function NumBuilderPlatoonsGreaterOrEqualNumBuilderPlatoons(aiBrain, name1, name2)
-	return (aiBrain.PlatoonNameCounter[name1] or 0) >= (aiBrain.PlatoonNameCounter[name2] or 0)
+	local builder1Count = aiBrain.PlatoonNameCounter[name1] or 0
+    local builder2Count = aiBrain.PlatoonNameCounter[name2] or 0
+	
+	return builder1Count >= builder2Count
 end
 
 ---@param aiBrain AIBrain
@@ -38,7 +55,10 @@ end
 ---@param name2 string
 ---@return boolean
 function NumBuilderPlatoonsLessThanNumBuilderPlatoons(aiBrain, name1, name2)
-	return (aiBrain.PlatoonNameCounter[name1] or 0) < (aiBrain.PlatoonNameCounter[name2] or 0)
+	local builder1Count = aiBrain.PlatoonNameCounter[name1] or 0
+    local builder2Count = aiBrain.PlatoonNameCounter[name2] or 0
+	
+	return builder1Count < builder2Count
 end
 
 ---@param aiBrain AIBrain
@@ -46,7 +66,14 @@ end
 ---@param varName string
 ---@return boolean
 function NumBuilderPlatoonsGreaterOrEqualVarTable(aiBrain, name, varName)
-	return ScenarioInfo.VarTable[varName] and ((aiBrain.PlatoonNameCounter[name] or 0) >= ScenarioInfo.VarTable[varName])
+	local counter = aiBrain.PlatoonNameCounter[name] or 0
+	local num = ScenarioInfo.VarTable[varName]
+	
+	if not num then
+		return false
+	end
+	
+	return counter >= num
 end
 
 ---@param aiBrain AIBrain
@@ -54,7 +81,14 @@ end
 ---@param varName string
 ---@return boolean
 function NumBuilderPlatoonsLessThanVarTable(aiBrain, name, varName)
-	return ScenarioInfo.VarTable[varName] and ((aiBrain.PlatoonNameCounter[name] or 0) < ScenarioInfo.VarTable[varName])
+	local counter = aiBrain.PlatoonNameCounter[name] or 0
+	local num = ScenarioInfo.VarTable[varName]
+	
+	if not num then
+		return false
+	end
+	
+	return counter < num
 end
 
 ---@param aiBrain AIBrain

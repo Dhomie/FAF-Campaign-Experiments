@@ -28,8 +28,6 @@ AIBrain = Class(CampaignAIBrain) {
 			LOG('Campaign AI cheats have been enabled, setting up cheat modifiers for use')
 			AIUtils.SetupCampaignCheat(self, true)
 		end
-		
-		self.FactoryAssistList = {}
 	end,
 	
 	-- Main building and forming platoon thread for the Platoon Build Manager
@@ -149,7 +147,7 @@ AIBrain = Class(CampaignAIBrain) {
     end,
     --- Form platoons
     --- Extracted as it's own function so you can call this to try and form platoons to clean up the pool
-    ---@param self AIBrain
+    ---@param self CampaignAIBrain
     ---@param requireBuilding boolean `true` = platoon must have `'BUILDING'` has its handle, `false` = it'll form any platoon it can
     ---@param platoonType PlatoonType Platoontype is just `'Air'/'Land'/'Sea'`, those are found in the platoon build manager table template.
     ---@param location Vector Location/Radius are where to do this.  If they aren't specified they will grab from anywhere.
@@ -382,14 +380,8 @@ AIBrain = Class(CampaignAIBrain) {
             position[1] = position[1] / TableGetn(factories)
             position[3] = position[3] / TableGetn(factories)
             if not rallyLoc and not location.UseCenterPoint then
-                local pnt
-				
-                if not markerType then
-                    pnt = AIUtils.AIGetClosestMarkerLocation(self, 'Rally Point', position[1], position[3])
-                else
-					--Check in case there are no Naval Rally Points on the map, and pick a generic Rally Point instead.
-                    pnt = AIUtils.AIGetClosestMarkerLocation(self, markerType, position[1], position[3]) or AIUtils.AIGetClosestMarkerLocation(self, 'Rally Point', position[1], position[3])
-                end			
+				-- Get the specified marker type, or fall back to the default 'Rally Point'
+                local pnt = AIUtils.AIGetClosestMarkerLocation(self, markerType, position[1], position[3]) or AIUtils.AIGetClosestMarkerLocation(self, 'Rally Point', position[1], position[3])
 				
                 if pnt and TableGetn(pnt) == 3 then
                     rally = Vector(pnt[1], pnt[2], pnt[3])
@@ -413,7 +405,7 @@ AIBrain = Class(CampaignAIBrain) {
         return true
     end,
 	
-	--- Enemy Picker thread
+	--- Enemy picker thread
     ---@param self CampaignAIBrain
     PickEnemy = function(self)
         while true do
@@ -453,6 +445,8 @@ AIBrain = Class(CampaignAIBrain) {
         return {startX, 0, startZ}
     end,
 	
+	--- The main function for the enemy picker thread
+	--- We call this function in map script, so the resource sharing enabling won't mess up existing missions
 	---@param self CampaignAIBrain
     PickEnemyLogic = function(self)
         local armyStrengthTable = {}
@@ -533,8 +527,8 @@ AIBrain = Class(CampaignAIBrain) {
         end
     end,
 	
-	---Used to get rid of nil table entries. Sorian ai function
-    ---@param self BaseAIBrain
+	--- Utility function, for gettingt rid of nil table entries.
+    ---@param self CampaignAIBrain
     ---@param oldtable table
     ---@return table
     RebuildTable = function(self, oldtable)
@@ -552,7 +546,7 @@ AIBrain = Class(CampaignAIBrain) {
     end,
 	
 	--- Returns the closest PBM build location to the given position, or nil
-	---@param self BaseAIBrain
+	---@param self CampaignAIBrain
     ---@param position Vector
     ---@return Vector
     PBMFindClosestBuildLocation = function(self, position)
@@ -574,8 +568,8 @@ AIBrain = Class(CampaignAIBrain) {
         return closest
     end,
 	
-	--- Courtesy of 4z0t, returns existing platoon with name, or creates if it doesn't exist yet
-    ---@param self AIBrain
+	--- Utility function, returns existing platoon with name, or creates it
+    ---@param self CampaignAIBrain
     ---@param name string
     ---@return Platoon
     GetPlatoonUniquelyNamedOrMake = function(self, name)
@@ -585,6 +579,6 @@ AIBrain = Class(CampaignAIBrain) {
             platoon:UniquelyNamePlatoon(name)
         end
         return platoon
-    end
+    end,
 }
 end

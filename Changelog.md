@@ -1,5 +1,10 @@
 Changelog
 
+# v9 (04.08.2023)
+- Code cleanups, adjustments.
+- Added FormCallbacks for OpAI ConditionalBuilds.
+- Other misc stuff I guess.
+
 # v8 (16.07.2023)
 - Fixed non-reworked SC1 campaign maps' AIs building infinite amount of transports
 - Slightly adjusted the amount of units the AIs need to form platoons for non-reworked SC1 campaign maps.

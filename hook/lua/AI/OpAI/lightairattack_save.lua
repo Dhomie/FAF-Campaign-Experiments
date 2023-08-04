@@ -128,7 +128,7 @@ Scenario = {
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','OSB_Master_LightAirAttack'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 0} },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
                             {'/lua/ai/opai/lightairattack_editorfunctions.lua', 'LightAirChildCountDifficulty', {'default_brain','default_master'} },
                         },
                         PlatoonData = {
@@ -159,7 +159,7 @@ Scenario = {
                     ['OSB_Child_LightAirAttack_Bombers'] =  {
                         PlatoonTemplate = 'OST_LightAirAttack_Bombers',
                         Priority = 292,
-                        InstanceCount = 1,
+                        InstanceCount = 3,
                         LocationType = 'MAIN',
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
@@ -178,7 +178,7 @@ Scenario = {
                     ['OSB_Child_LightAirAttack_Interceptors'] =  {
                         PlatoonTemplate = 'OST_LightAirAttack_Interceptors',
                         Priority = 291,
-                        InstanceCount = 1,
+                        InstanceCount = 3,
                         LocationType = 'MAIN',
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
@@ -224,7 +224,7 @@ Scenario = {
                     ['OSB_Child_LightAirAttack_Gunships'] =  {
                         PlatoonTemplate = 'OST_LightAirAttack_Gunships',
                         Priority = 294,
-                        InstanceCount = 1,
+                        InstanceCount = 2,
                         LocationType = 'MAIN',
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
@@ -243,7 +243,7 @@ Scenario = {
                     ['OSB_Child_LightAirAttack_TorpedoBombers'] =  {
                         PlatoonTemplate = 'OST_LightAirAttack_TorpedoBombers',
                         Priority = 292,
-                        InstanceCount = 1,
+                        InstanceCount = 2,
                         LocationType = 'MAIN',
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',

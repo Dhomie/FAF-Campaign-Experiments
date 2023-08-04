@@ -223,6 +223,28 @@ function CanConditionalBuild(singleEngineerPlatoon)
 end
 
 ---@param conditionalUnit any
+function ConditionalBuildDied(conditionalUnit)
+    local aiBrain = conditionalUnit:GetAIBrain()
+    local bManager = aiBrain.BaseManagers[conditionalUnit.BaseName]
+    local selectedBuild = conditionalUnit.ConditionalBuild
+    -- Reinsert the conditional build (for one of these units)
+    table.insert(bManager.ConditionalBuildTable, {
+        name = selectedBuild.name,
+        data =  {
+            MaxAssist = selectedBuild.data.MaxAssist,
+            BuildCondition = selectedBuild.data.BuildCondition,
+            PlatoonAIFunction = selectedBuild.data.PlatoonAIFunction,
+            PlatoonData = selectedBuild.data.PlatoonData,
+            FormCallbacks = selectedBuild.data.FormCallbacks,
+            Retry = selectedBuild.data.Retry,
+            KeepAlive = true,
+            Amount = 1,
+            WaitSecondsAfterDeath = selectedBuild.data.WaitSecondsAfterDeath,
+        },
+    })
+end
+
+---@param conditionalUnit any
 function ConditionalBuildSuccessful(conditionalUnit)
     local aiBrain = conditionalUnit:GetAIBrain()
     local bManager = aiBrain.BaseManagers[conditionalUnit.BaseName]
@@ -236,6 +258,16 @@ function ConditionalBuildSuccessful(conditionalUnit)
 
     if selectedBuild.data.PlatoonAIFunction then
         newPlatoon:ForkAIThread(import(selectedBuild.data.PlatoonAIFunction[1])[selectedBuild.data.PlatoonAIFunction[2]])
+    end
+	
+	if selectedBuild.data.FormCallbacks then
+        for _, callback in selectedBuild.data.FormCallbacks do
+            if type(callback) == "function" then
+                newPlatoon:ForkThread(callback)
+            else
+                newPlatoon:ForkThread(import(callback[1])[callback[2]])
+            end
+        end
     end
 
     -- Set up a death wait thing for it to rebuild
