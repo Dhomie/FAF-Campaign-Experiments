@@ -100,10 +100,7 @@ Scenario = {
                         BuildTimeOut = 600,
                         PlatoonType = 'Any',
                         RequiresConstruction = false,
-                        PlatoonAIFunction = {'/lua/ai/opai/airscout_editorfunctions.lua', 'AirScoutPatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ai/opai/airscout_editorfunctions.lua', 'AirScoutPatrol', {'default_platoon'} },
                         BuildConditions = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','OSB_Master_AirScout'} },
                         },

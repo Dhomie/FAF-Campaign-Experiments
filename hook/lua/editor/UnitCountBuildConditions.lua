@@ -18,7 +18,11 @@ local Utils = import("/lua/utilities.lua")
 ---@param platoonName string
 ---@return boolean
 function HaveEqualToUnitsInPlatoon(aiBrain, numReq, platoonName)
-	local platoon = aiBrain:GetPlatoonUniquelyNamedOrMake(platoonName)
+	local platoon = aiBrain:GetPlatoonUniquelyNamed(platoonName)
+	
+	if not platoon then
+		return true
+	end
 	
 	return table.getn(platoon:GetPlatoonUnits()) == numReq
 end
@@ -28,7 +32,11 @@ end
 ---@param platoonName string
 ---@return boolean
 function HaveGreaterThanUnitsInPlatoon(aiBrain, numReq, platoonName)
-    local platoon = aiBrain:GetPlatoonUniquelyNamedOrMake(platoonName)
+    local platoon = aiBrain:GetPlatoonUniquelyNamed(platoonName)
+	
+	if not platoon then
+		return true
+	end
 	
 	return table.getn(platoon:GetPlatoonUnits()) > numReq
 end
@@ -38,8 +46,12 @@ end
 ---@param platoonName string
 ---@return boolean
 function HaveLessThanUnitsInPlatoon(aiBrain, numReq, platoonName)
-    local platoon = aiBrain:GetPlatoonUniquelyNamedOrMake(platoonName)
+    local platoon = aiBrain:GetPlatoonUniquelyNamed(platoonName)
 	
+	if not platoon then
+		return true
+	end
+
 	return table.getn(platoon:GetPlatoonUnits()) < numReq
 end
 
@@ -99,7 +111,6 @@ function HaveLessThanUnitsWithCategory(aiBrain, numReq, category, idleReq)
     else
         numUnits = table.getn(aiBrain:GetListOfUnits(testCat, true))
     end
-	
 	return numUnits < numReq
 end
 

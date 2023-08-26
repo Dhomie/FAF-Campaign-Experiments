@@ -7,15 +7,10 @@
 local ScenarioFramework = import("/lua/scenarioframework.lua")
 
 --- Some context information:
---- AttackManager -> AM for short
---- PlatoonBuildManager -> PBM for short
 --- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
 --- 'Child' platoons -> PBM platoons that are built by factories
---- Platoon counts usually are: 1, 2, or 3, depending on the difficulty
+--- Changed platoon counts to the default 1/2/3, previously it was 1 for Easy, 2 for Normal and Hard
 
---- Changed platoon counts to the default, previously it was 1 for Easy, 2 for Normal and Hard
-
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
@@ -28,7 +23,6 @@ function BomberEscortChildBomberCountDifficulty(aiBrain, master)
     return counter < num 
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less than desired.
 --- AKA 'Do we need more PBM platoons ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
@@ -42,9 +36,8 @@ function BomberEscortChildEscortCountDifficulty(aiBrain, master)
 
 end
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is more or the same as desired.
 --- AKA 'Do we have enough PBM platoons to form the AM platoon ?'
---- This AM platoon is assembled from a mix of Air-To-Surface, and Air-to-Air combat units
+--- This AM platoon is assembled from a mix of Anti-Surface, and Anti-Air combat units
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@return boolean

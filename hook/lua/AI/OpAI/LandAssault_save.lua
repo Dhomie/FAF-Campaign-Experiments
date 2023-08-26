@@ -172,9 +172,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -192,9 +192,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -212,8 +212,8 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -231,10 +231,10 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3 , 0 } },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -252,11 +252,11 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1 , 2 } },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
-                            {'/lua/editor/miscbuildconditions.lua', 'DifficultyGreaterOrEqual', {'default_brain', 2 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1 , 2} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1} },
+                            {'/lua/editor/miscbuildconditions.lua', 'DifficultyGreaterOrEqual', {'default_brain', 2} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -274,8 +274,8 @@ Scenario = {
                         RequiresConstruction = false,
                         PlatoonAIFunction = {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultAttack', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultMasterCountDifficulty', {'default_brain','default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultMasterCountDifficulty', {'default_brain', 'default_master'} },
                         },
                         PlatoonBuildCallbacks = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMUnlockPlatoon', {'default_brain','default_platoon'} },
@@ -298,9 +298,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -318,10 +318,10 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1 , 3 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 3} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -339,9 +339,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -359,9 +359,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -379,9 +379,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -414,9 +414,9 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -434,11 +434,11 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3 , 0 } },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
-                            {'/lua/editor/miscbuildconditions.lua', 'DifficultyGreaterOrEqual', {'default_brain', 2 } },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
+                            {'/lua/editor/miscbuildconditions.lua', 'DifficultyGreaterOrEqual', {'default_brain', 2} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -456,10 +456,10 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain','default_master'} },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultChildCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2} },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 1 } },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {

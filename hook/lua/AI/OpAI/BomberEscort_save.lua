@@ -125,23 +125,11 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 2 },
-                                {'default_brain','default_builder_name','2'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 3} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -158,27 +146,12 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 1 },
-                                {'default_brain','default_builder_name','1'}
-                            },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex',
-                                {'default_brain', 1 , 0 },
-                                {'default_brain','1','0'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -195,23 +168,14 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
                             {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildEscortCountDifficulty',
                                 {'default_brain','default_master'},
                                 {'default_brain','default_master'}
                             },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 2 },
-                                {'default_brain','default_builder_name','2'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -228,23 +192,11 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 1 },
-                                {'default_brain','default_builder_name','1'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -261,31 +213,16 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = false,
-                        PlatoonAIFunction = {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortAI',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortAI', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortMasterCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortMasterCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                         },
                         PlatoonBuildCallbacks = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMUnlockPlatoon',
-                                {'default_brain','default_platoon'},
-                                {'default_brain','default_platoon'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMUnlockPlatoon', {'default_brain', 'default_platoon'} },
                         },
                         PlatoonAddFunctions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMLockPlatoon',
-                                {'default_platoon'},
-                                {'default_platoon'}
-                            },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMLockPlatoon', {'default_platoon'} },
                         },
                         PlatoonData = {
                             {type = 3, name = 'AMMasterPlatoon',  value = true},
@@ -300,23 +237,11 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 2 },
-                                {'default_brain','default_builder_name','2'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 2} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -333,27 +258,12 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 2 },
-                                {'default_brain','default_builder_name','2'}
-                            },
-                            {'/lua/editor/otherarmyunitcountbuildconditions.lua', 'BrainGreaterThanNumCategory',
-                                {'default_brain','Player', 5 , categories.NAVAL * categories.MOBILE },
-                                {'default_brain','Player','5','categories.NAVAL * categories.MOBILE'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildBomberCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 2} },
+                            {'/lua/editor/otherarmyunitcountbuildconditions.lua', 'BrainsCompareNumCategory', {'default_brain', {'HumanPlayers'}, 5, categories.NAVAL, '>='} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -370,23 +280,11 @@ Scenario = {
                         BuildTimeOut = 500,
                         PlatoonType = 'Air',
                         RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol',
-                            {'default_platoon'},
-                            {'default_platoon'}
-                        },
+                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildEscortCountDifficulty',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock',
-                                {'default_brain','default_master'},
-                                {'default_brain','default_master'}
-                            },
-                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter',
-                                {'default_brain','default_builder_name', 2 },
-                                {'default_brain','default_builder_name','2'}
-                            },
+                            {'/lua/ai/opai/bomberescort_editorfunctions.lua', 'BomberEscortChildEscortCountDifficulty', {'default_brain', 'default_master'} },
+                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
+                            {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 3} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {

@@ -5,12 +5,9 @@
 ----------------------------------------------------------------------------------------------------
 
 --- Some context information:
---- AttackManager -> AM for short
---- PlatoonBuildManager -> PBM for short
 --- 'Master' platoons -> AM platoons, formed from multiple 'Child' platoons
 --- 'Child' platoons -> PBM platoons that are built by factories
 
---- Generic Child platoon count build condition that returns true if the amount of child platoons existing is less 1.
 --- AKA 'Do we need an Engineer platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
@@ -22,7 +19,6 @@ function EngineerAttackChildCount(aiBrain, master)
 	return counter < 1
 end
 
---- Generic Master platoon count build condition that returns true if the amount of master platoons existing is 1 or more.
 --- AKA 'Do we have the PBM Engineer platoon(s) to form the AM platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string
@@ -34,22 +30,23 @@ function EngineerAttackMasterCount(aiBrain, master)
 	return counter >= 1
 end
 
---- Checks if the OpAI platoon's origin base's unique transport pool has less than 2 transports
 --- AKA 'Do we have enough transports to assume we can transport our Engineer platoon ?'
 ---@param aiBrain AIBrain default_brain
 ---@param master string default_master
 ---@param locationName string default_location_type
 ---@return boolean
 function NeedEngineerTransports(aiBrain, masterName, locationName)
-	local poolName = 'TransportPool'
-	
-	if locationName then
-		poolName = locationName .. '_TransportPool'
+	if not locationName then
+		error('*AI ERROR: NeedTransports requires locationName parameter.', 2)
 	end
 	
-    local transportPool = aiBrain:GetPlatoonUniquelyNamed(poolName)
-
-    return not (transportPool and table.getn(transportPool:GetPlatoonUnits()) > 2)
+	local poolName = locationName .. '_TransportPool'
+	
+	-- Get either the specific transport platoon, or the universal 'TransportPool' platoon
+    local transportPool = aiBrain:GetPlatoonUniquelyNamed(poolName) or aiBrain:GetPlatoonUniquelyNamed('TransportPool')
+	
+	-- Reverse logic, we want to return true if the platoon doesn't exist.
+    return not (transportPool and table.getn(transportPool:GetPlatoonUnits()) > 2) 
 end
 
 
@@ -64,8 +61,7 @@ Scenario = {
         ['OST_EngineerAttack_T2Engineers'] = {
             'OST_EngineerAttack_T2Engineers',
             '',
-            { 'uel0208', 0, 4, 'attack', 'None' },
-            { 'uel0307', 0, 2, 'attack', 'None' },
+            { 'uel0208', 0, 6, 'attack', 'None' },
         },
         ['OST_EngineerAttack_T2Transport'] = {
             'OST_EngineerAttack_T2Transport',
@@ -73,16 +69,11 @@ Scenario = {
             { 'uea0104', 0, 1, 'support', 'None' },
         },
 
-        ['OST_EngineerAttack_T2EngineersShieldsSeraphim'] = {
-            'OST_EngineerAttack_T2EngineersShieldsSeraphim',
+        ['OST_EngineerAttack_T2EngineersShields'] = {
+            'OST_EngineerAttack_T2EngineersShields',
             '',
-            { 'uel0208', 0, 6, 'attack', 'None' },
+            { 'uel0208', 0, 4, 'attack', 'None' },
             { 'uel0307', 0, 2, 'attack', 'None' },
-        },
-        ['OST_EngineerAttack_T2EngineersSeraphim'] = {
-            'OST_EngineerAttack_T2EngineersSeraphim',
-            '',
-            { 'uel0208', 0, 8, 'attack', 'None' },
         },
         ['OST_EngineerAttack_T1Engineers'] = {
             'OST_EngineerAttack_T1Engineers',
@@ -95,12 +86,11 @@ Scenario = {
             { 'uea0107', 0, 1, 'support', 'None' },
         },
 
-
+		
         ['OST_EngineerAttack_T3Engineers'] = {
             'OST_EngineerAttack_T3Engineers',
             '',
             { 'uel0309', 0, 4, 'attack', 'None' },
-            { 'uel0307', 0, 4, 'attack', 'None' },
         },
         ['OST_EngineerAttack_T3Transport'] = {
             'OST_EngineerAttack_T3Transport',
@@ -129,7 +119,7 @@ Scenario = {
                         PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'TransportPool', {'default_platoon'} },
                         BuildConditions = {
                             {'/lua/ai/opai/EngineerAttack_save.lua', 'NeedEngineerTransports', {'default_brain','default_master', 'default_location_type'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1 } },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
                         },
                         PlatoonData = {
                         },
@@ -185,7 +175,6 @@ Scenario = {
                         BuildConditions = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
                             {'/lua/ai/opai/EngineerAttack_save.lua', 'EngineerAttackChildCount', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1 } },
                         },
                         PlatoonData = {
                             {
@@ -216,7 +205,6 @@ Scenario = {
                         BuildConditions = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
                             {'/lua/ai/opai/EngineerAttack_save.lua', 'EngineerAttackChildCount', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 3 } },
                         },
                         PlatoonData = {
                             {
@@ -247,7 +235,7 @@ Scenario = {
                         BuildConditions = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
                             {'/lua/ai/opai/EngineerAttack_save.lua', 'EngineerAttackChildCount', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1 } },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
                         },
                         PlatoonData = {
                             {
@@ -264,37 +252,6 @@ Scenario = {
                             },
                         },
                         ChildrenType = {'CombatEngineers'},
-                    },
-
-                    ['OSB_Child_EngineerAttack_T2EngineersSeraphim'] = {
-                        PlatoonTemplate = 'OST_EngineerAttack_T2EngineersSeraphim',
-                        Priority = 516,
-                        InstanceCount = 1,
-                        LocationType = 'MAIN',
-                        BuildTimeOut = -1,
-                        PlatoonType = 'Land',
-                        RequiresConstruction = true,
-                        PlatoonAIFunction = {'/lua/ScenarioPlatoonAI.lua', 'DefaultOSBasePatrol', {'default_platoon'} },
-                        BuildConditions = {
-                            {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
-                            {'/lua/ai/opai/EngineerAttack_save.lua', 'EngineerAttackChildCount', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 4 } },
-                        },
-                        PlatoonData = {
-                            {
-                                type = 5,
-                                name = 'AMPlatoons',
-                                value =
-                                {
-                                    {
-                                        type = 2,
-                                        name = 'String_0',
-                                        value = 'OSB_Master_EngineerAttack'
-                                    },
-                                }
-                            },
-                        },
-                        ChildrenType = {'T2Engineers'},
                     },
 
                     ['OSB_Child_EngineerAttack_T1Engineers'] = {
@@ -327,8 +284,8 @@ Scenario = {
                         ChildrenType = {'T1Engineers'},
                     },
 
-                    ['OSB_Child_EngineerAttack_T2EngineersShieldsSeraphim'] = {
-                        PlatoonTemplate = 'OST_EngineerAttack_T2EngineersShieldsSeraphim',
+                    ['OSB_Child_EngineerAttack_T2EngineersShields'] = {
+                        PlatoonTemplate = 'OST_EngineerAttack_T2EngineersShields',
                         Priority = 516,
                         InstanceCount = 1,
                         LocationType = 'MAIN',
@@ -339,7 +296,6 @@ Scenario = {
                         BuildConditions = {
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain','default_master'} },
                             {'/lua/ai/opai/EngineerAttack_save.lua', 'EngineerAttackChildCount', {'default_brain','default_master'} },
-                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 4 } },
                         },
                         PlatoonData = {
                             {
