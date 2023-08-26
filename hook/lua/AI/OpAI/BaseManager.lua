@@ -91,73 +91,14 @@ BaseManager = Class(BaseManagerTemplate) {
 		BaseManagerTemplate.Initialize(self, brain, baseName, markerName, radius, levelTable, diffultySeparate)
 		self:LoadDefaultBaseTransports()
     end,
-	
-	--- Determines if a specific unit needs upgrades, returns name of upgrade if needed
-	--- Works with up to 3-level enhancement paths
-	--- TODO: Make a check that can deal with any number of prerequisites, like a 4-5-6 level enhancement path, example: ('Shield -> 'ShieldHeavy' -> 'ShieldVeryHeavy' ->'ShieldUltraHeavy' -> 'ShieldUltraBigHeavy')
-    ---@param self BaseManager
-    ---@param unit Unit
-    ---@param unitType string
-    ---@return string|boolean
-    UnitNeedsUpgrade = function(self, unit, unitType)
-        if unit.Dead then
-            return false
-        end
 
-        -- Find appropriate data about unit upgrade info
-        local upgradeTable = false
-        if unitType then
-            upgradeTable = self.UnitUpgrades[unitType]
-        else
-            upgradeTable = self.UnitUpgrades[unit.UnitName]
-        end
+    BuildingCounterDifficultyDefault = function(self, buildingType)
+        local diff = ScenarioInfo.Options.Difficulty or 1
 
-        if not upgradeTable then
-            return false
-        end
-
-        local allEnhancements = unit:GetBlueprint().Enhancements
-        if not allEnhancements then
-            return false
-        end
-			
-        for _, upgradeName in upgradeTable do
-            -- Find the upgrade in the unit's bp
-            local bpUpgrade = allEnhancements[upgradeName]
-            if bpUpgrade then
-                if not unit:HasEnhancement(upgradeName) then
-					-- Check if we already have an enhancement on the slot our desired enhancement wants to occupy
-					if SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
-						-- Account for 3-level enhancements, like the Cybran ACU's recent *Stealth -> Self-Repair -> Cloak* enhancement path, if we want 'Cloak', check for 'Stealth' 
-						-- Check for the prerequisite's prerequisite, and return it
-						if bpUpgrade.Prerequisite and allEnhancements[bpUpgrade.Prerequisite].Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == allEnhancements[bpUpgrade.Prerequisite].Prerequisite) then
-							return bpUpgrade.Prerequisite
-						-- If it's a direct prerequisite enhancement, return upgrade name
-						elseif bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
-							return upgradeName
-						-- It's not a prerequisite, remove the enhancement
-						else
-							return SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] .. 'Remove'
-						end
-					-- Check if our desired enhancement's prerequisite has any prerequisites, and return its name (Prerequisiteception)
-					elseif bpUpgrade.Prerequisite and allEnhancements[bpUpgrade.Prerequisite].Prerequisite and not unit:HasEnhancement(allEnhancements[bpUpgrade.Prerequisite].Prerequisite) then
-						return allEnhancements[bpUpgrade.Prerequisite].Prerequisite
-					-- Check if our desired enhancement has any prerequisites, and return its name
-					elseif bpUpgrade.Prerequisite and not unit:HasEnhancement(bpUpgrade.Prerequisite) then
-                        return bpUpgrade.Prerequisite
-                    -- No requirement and no enhancement occupying our desired slot, return the upgrade name
-                    else
-                        return upgradeName
-                    end
-                end
-            else
-                error('*Base Manager Error: ' .. self.BaseName .. ', enhancement: ' .. upgradeName .. ' was not found in the unit\'s bp.')
-            end
-        end
-
-        return false
+        return BuildingCounterDefaultValues[diff].Default
     end,
-
+	
+	---@param self BaseManager
     UpgradeCheckThread = function(self)
         local armyIndex = self.AIBrain:GetArmyIndex()
         while true do
@@ -165,45 +106,142 @@ BaseManager = Class(BaseManagerTemplate) {
                 for k, v in self.UpgradeTable do
                     local unit = ScenarioInfo.UnitNames[armyIndex][v.UnitName]
                     if unit and not unit.Dead then
-						-- Structure upgrading should take priority, so the check for unit.UnitBeingBuilt is not needed. This check is a lot more reliable to get factories to upgrade
-						if unit.UnitId ~= v.FinalUnit and not unit:IsBeingBuilt() and not unit:IsUnitState('Upgrading') then
+                        -- Check if the structure needs to upgrade
+                        if unit.UnitId ~= v.FinalUnit then
                             self:ForkThread(self.BaseManagerUpgrade, unit, v.UnitName)
                         end
                     end
                 end
             end
-            local waitTime = Random(2, 4)
-            WaitSeconds(waitTime)
+            WaitSeconds(5)
         end
     end,
+	
+	--- Thread that will upgrade factories, radar, etc. to next level
+	--- Recoded to handle most common cases of unexpected situations (including players switching to the AI army and messing up the orders given to it)
+    ---@param self BaseManager
+    ---@param unit Unit
+    ---@param unitName string
+    BaseManagerUpgrade = function(self, unit, unitName)
+		
+		-- If we were set to upgrade, and we're busy building something
+		if unit.SetToUpgrade and ((unit:IsUnitState('Upgrading') or unit:IsUnitState('Building')) or (unit:IsUnitState('Guarding') and unit:IsUnitState('Building'))) then
+			return
+		end
+		
+		-- Use unit callbacks
+		-- Hook the structure we picked for upgrading, and the upgrade as well
+		-- We gotta chain a hook, inside another hook
+		
+		-- Called when the unit starts building
+		-- Set flag as hooked, so we don't duplicate this if we need to re-order the upgrade
+		if not unit.HookedForUpgrade then
+			local CampaignOnStartBuild = unit.OnStartBuild
+			
+			-- Hook the structure, called when the unit starts building
+			unit.OnStartBuild = function(self, unitBeingBuilt, order)
+				CampaignOnStartBuild(self, unitBeingBuilt, order)
 
-    -- Spawns a group, tracks number of times it has been built, gives nuke and anti-nukes ammo
-    SpawnGroup = function(self, groupName, uncapturable, balance)
-        local unitGroup = ScenarioUtils.CreateArmyGroup(self.AIBrain.Name, groupName, nil, balance)
-
-        for _, v in unitGroup do
-            if self.FactoryBuildRateBuff then
-                Buff.ApplyBuff(v, self.FactoryBuildRateBuff)
-            end
-            if self.EngineerBuildRateBuff then
-                Buff.ApplyBuff(v, self.EngineerBuildRateBuff)
-            end
-            if uncapturable then
-                v:SetCapturable(false)
-                v:SetReclaimable(false)
-            end
-            if EntityCategoryContains(categories.SILO, v) then
-                v:GiveNukeSiloAmmo(1) --was 2, messes up platoon.NukeAI(self)
-                v:GiveTacticalSiloAmmo(1) --was 2, messes up platoon.NukeAI(self)
+				if order == 'Upgrade' then
+					unitBeingBuilt.BuildingUpgrade = true
+					
+					-- Hook the upgrade, called when the upgrade is finished
+					local CampaignOnStopBeingBuilt = unitBeingBuilt.OnStopBeingBuilt
+					unitBeingBuilt.OnStopBeingBuilt = function(self, builder, layer)
+						CampaignOnStopBeingBuilt(self, builder, layer)
+			
+						if self.BuildingUpgrade then
+							ScenarioInfo.UnitNames[self.Army][unitName] = self
+							SPEW('Structure upgrade thread finished for: ' .. repr(unitName))
+						end
+					end
+					SPEW('Structure upgrade thread set structure as potential new unit: ' .. repr(unitName))
+				end
+				unit.HookedForUpgrade = true
+			end
+		end
+		
+		WaitTicks(1)
+		
+        local aiBrain = unit.Brain
+        local factionIndex = aiBrain:GetFactionIndex()
+        local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+        if upgradeID then
+            IssueUpgrade({unit}, upgradeID)
+			SPEW('Structure upgrade thread started for: ' .. repr(unitName))
+			-- Set the unit as upgrading, in case we got units to build before the upgrade command
+			unit.SetToUpgrade = true
+        else
+			WARN('Structure upgrade thread for ' .. repr(unitName) .. ' aborted, couldn\'t find a valid upgrade ID!')
+			return
+		end
+    end,
+	
+	--- Thread that will upgrade factories, radar, etc. to next level
+	--- Recoded to handle most common cases of unexpected situations (including players switching to the AI army and messing up the orders given to it)
+    ---@param self BaseManager
+    ---@param unit Unit
+    ---@param unitName string
+    --[[BaseManagerUpgrade = function(self, unit, unitName)
+	
+		-- If we're already upgrading, or we got told to upgrade, but we are currently building something else, return
+		if unit:IsUnitState('Upgrading') or (unit.SetToUpgrade and not unit:IsIdleState()) then
+			return
+		end
+		
+        local aiBrain = unit:GetAIBrain()
+        local factionIndex = aiBrain:GetFactionIndex()
+        local armyIndex = aiBrain:GetArmyIndex()
+        local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+        if upgradeID then
+            IssueUpgrade({unit}, upgradeID)
+			-- Set the unit as upgrading, in case we got units to build before the upgrade command
+			unit.SetToUpgrade = true
+        else
+			WARN('Structure upgrade thread for ' .. repr(unitName) .. ' aborted, couldn\'t find a valid upgrade ID!')
+			return
+		end
+		
+		-- Wait until the structure has finished building everything else
+		while not unit.Dead and unit.UnitBeingBuilt and unit.UnitBeingBuilt.UnitId ~= upgradeID do
+			WaitSeconds(2)
+			SPEW('Structure waiting for unit being built ID to finish before upgrading: ' .. repr(unit.UnitBeingBuilt.UnitId))
+		end
+		
+        local upgrading = true
+        local newUnit = false
+		
+		-- While the unit exists, it's upgrading, only update the ScenarioInfo.UnitNames data if the upgrade finishes, and the new unit is the upgraded structure
+        while not unit.Dead and upgrading do
+			SPEW('Structure upgrade thread for ' .. repr(unitName) .. ' is running.')
+            WaitSeconds(2)
+			
+            upgrading = false
+			-- The original unit still exists, we haven't finished upgrading yet
+            if unit and not unit.Dead then
+				-- If we are not upgrading, and aren't under construction, return
+				if not unit:IsUnitState('Upgrading') and not unit:IsBeingBuilt() then
+					WARN('Structure upgrade thread for ' .. repr(unitName) .. ' aborted, unit isn\'t upgrading!')
+					unit.SetToUpgrade = nil
+					return
+				end
+				
+				-- The upgrade might have been interrupted, (the new unit died, or got deleted), update newUnit as needed
+                if not newUnit or newUnit.Dead then
+					-- Make sure the current unit being built is the upgrade we want, we might have new build orders after our (interrupted) upgrade
+					if unit.UnitBeingBuilt.UnitId == upgradeID then
+						newUnit = unit.UnitBeingBuilt
+					end
+                end
+                upgrading = true
             end
         end
-    end,
-
-    BuildingCounterDifficultyDefault = function(self, buildingType)
-        local diff = ScenarioInfo.Options.Difficulty or 1
-
-        return BuildingCounterDefaultValues[diff].Default
-    end,
+		-- At this point the upgrade should be finished, update ScenarioInfo.UnitNames
+        ScenarioInfo.UnitNames[armyIndex][unitName] = newUnit
+		SPEW('Structure upgrade thread finished for: ' .. repr(unitName))
+    end,]]
 	
 	ActivationFunctions = {
         ShieldsActive = function(self, val)
@@ -299,48 +337,6 @@ BaseManager = Class(BaseManagerTemplate) {
 	SetTransportsTech = function(self, val)
 		self.TransportsTech = val
 	end,
-	
-	---@param self BaseManager
-    LoadDefaultBaseTMLs = function(self)
-        local defaultBuilder = {
-            BuilderName = 'BaseManager_TMLPlatoon_' .. self.BaseName,
-            PlatoonTemplate = self:CreateTMLPlatoonTemplate(),
-            Priority = 300,
-            PlatoonType = 'Any',
-            RequiresConstruction = false,
-            LocationType = self.BaseName,
-            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerTMLPlatoon' },
-            BuildConditions = {
-                { BMBC, 'BaseActive', { self.BaseName } },
-                { BMBC, 'TMLsEnabled', { self.BaseName } },
-            },
-            PlatoonData = {
-                BaseName = self.BaseName,
-            },
-        }
-        self.AIBrain:PBMAddPlatoon(defaultBuilder)
-    end,
-
-    ---@param self BaseManager
-    LoadDefaultBaseNukes = function(self)
-        local defaultBuilder = {
-            BuilderName = 'BaseManager_NukePlatoon_' .. self.BaseName,
-            PlatoonTemplate = self:CreateNukePlatoonTemplate(),
-            Priority = 400,
-            PlatoonType = 'Any',
-            RequiresConstruction = false,
-            LocationType = self.BaseName,
-            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerNukePlatoon' },
-            BuildConditions = {
-                { BMBC, 'BaseActive', { self.BaseName } },
-                { BMBC, 'NukesEnabled', { self.BaseName } },
-            },
-            PlatoonData = {
-                BaseName = self.BaseName,
-            },
-        }
-        self.AIBrain:PBMAddPlatoon(defaultBuilder)
-    end,
 	
 	---@param self BaseManager
     LoadDefaultBaseTransports = function(self)
