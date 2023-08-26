@@ -123,6 +123,67 @@ BaseManager = Class(BaseManagerTemplate) {
     ---@param unit Unit
     ---@param unitName string
     BaseManagerUpgrade = function(self, unit, unitName)
+		
+		-- If we were set to upgrade, and we're busy building something
+		if unit.SetToUpgrade and ((unit:IsUnitState('Upgrading') or unit:IsUnitState('Building')) or (unit:IsUnitState('Guarding') and unit:IsUnitState('Building'))) then
+			return
+		end
+		
+		-- Use unit callbacks
+		-- Hook the structure we picked for upgrading, and the upgrade as well
+		-- We gotta chain a hook, inside another hook
+		
+		-- Called when the unit starts building
+		-- Set flag as hooked, so we don't duplicate this if we need to re-order the upgrade
+		if not unit.HookedForUpgrade then
+			local CampaignOnStartBuild = unit.OnStartBuild
+			
+			-- Hook the structure, called when the unit starts building
+			unit.OnStartBuild = function(self, unitBeingBuilt, order)
+				CampaignOnStartBuild(self, unitBeingBuilt, order)
+
+				if order == 'Upgrade' then
+					unitBeingBuilt.BuildingUpgrade = true
+					
+					-- Hook the upgrade, called when the upgrade is finished
+					local CampaignOnStopBeingBuilt = unitBeingBuilt.OnStopBeingBuilt
+					unitBeingBuilt.OnStopBeingBuilt = function(self, builder, layer)
+						CampaignOnStopBeingBuilt(self, builder, layer)
+			
+						if self.BuildingUpgrade then
+							ScenarioInfo.UnitNames[self.Army][unitName] = self
+							SPEW('Structure upgrade thread finished for: ' .. repr(unitName))
+						end
+					end
+					SPEW('Structure upgrade thread set structure as potential new unit: ' .. repr(unitName))
+				end
+				unit.HookedForUpgrade = true
+			end
+		end
+		
+		WaitTicks(1)
+		
+        local aiBrain = unit.Brain
+        local factionIndex = aiBrain:GetFactionIndex()
+        local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+        if upgradeID then
+            IssueUpgrade({unit}, upgradeID)
+			SPEW('Structure upgrade thread started for: ' .. repr(unitName))
+			-- Set the unit as upgrading, in case we got units to build before the upgrade command
+			unit.SetToUpgrade = true
+        else
+			WARN('Structure upgrade thread for ' .. repr(unitName) .. ' aborted, couldn\'t find a valid upgrade ID!')
+			return
+		end
+    end,
+	
+	--- Thread that will upgrade factories, radar, etc. to next level
+	--- Recoded to handle most common cases of unexpected situations (including players switching to the AI army and messing up the orders given to it)
+    ---@param self BaseManager
+    ---@param unit Unit
+    ---@param unitName string
+    --[[BaseManagerUpgrade = function(self, unit, unitName)
 	
 		-- If we're already upgrading, or we got told to upgrade, but we are currently building something else, return
 		if unit:IsUnitState('Upgrading') or (unit.SetToUpgrade and not unit:IsIdleState()) then
@@ -145,7 +206,7 @@ BaseManager = Class(BaseManagerTemplate) {
 		
 		-- Wait until the structure has finished building everything else
 		while not unit.Dead and unit.UnitBeingBuilt and unit.UnitBeingBuilt.UnitId ~= upgradeID do
-			WaitSeconds(3)
+			WaitSeconds(2)
 			SPEW('Structure waiting for unit being built ID to finish before upgrading: ' .. repr(unit.UnitBeingBuilt.UnitId))
 		end
 		
@@ -155,7 +216,7 @@ BaseManager = Class(BaseManagerTemplate) {
 		-- While the unit exists, it's upgrading, only update the ScenarioInfo.UnitNames data if the upgrade finishes, and the new unit is the upgraded structure
         while not unit.Dead and upgrading do
 			SPEW('Structure upgrade thread for ' .. repr(unitName) .. ' is running.')
-            WaitSeconds(3)
+            WaitSeconds(2)
 			
             upgrading = false
 			-- The original unit still exists, we haven't finished upgrading yet
@@ -180,7 +241,7 @@ BaseManager = Class(BaseManagerTemplate) {
 		-- At this point the upgrade should be finished, update ScenarioInfo.UnitNames
         ScenarioInfo.UnitNames[armyIndex][unitName] = newUnit
 		SPEW('Structure upgrade thread finished for: ' .. repr(unitName))
-    end,
+    end,]]
 	
 	ActivationFunctions = {
         ShieldsActive = function(self, val)

@@ -271,7 +271,13 @@ function GetTransportsThread(platoon)
     local transSlotTable = {}
 
     if transportsNeeded then
-        local pool = aiBrain:GetPlatoonUniquelyNamedOrMake(poolName)
+        local pool = aiBrain:GetPlatoonUniquelyNamed(poolName)
+		
+		if not pool then
+			pool = aiBrain:MakePlatoon('', '')
+			pool:UniquelyNamePlatoon(poolName)
+		end
+		
         while transportsNeeded do
             neededTable = GetNumTransports(platoon)
             -- Make sure more are needed

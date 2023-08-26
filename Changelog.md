@@ -1,5 +1,9 @@
 Changelog
 
+# v10 (04.08.2023)
+- Code cleanups in preparation for the upcoming FAF patch, some of the mod's changes are included in the patch.
+- Attempt at fixing the BaseManager's structure upgrade method.
+
 # v9 (04.08.2023)
 - Code cleanups, adjustments.
 - Added FormCallbacks for OpAI ConditionalBuilds.
