@@ -35,6 +35,17 @@ local BuildingCounterDefaultValues = {
     },
 }
 
+function StructureOnStartBuild(unit, unitBeingBuilt)
+	
+end
+
+---@param unit Unit
+function UpgradeOnStopBeingBuilt(unit)
+	if self.BuildingUpgrade then
+		ScenarioInfo.UnitNames[self.Army][self.UnitName] = self
+	end
+end
+
 ---@class BaseManager
 ---@field Trash TrashBag
 ---@field AIBrain AIBrain
@@ -44,6 +55,8 @@ BaseManager = Class(BaseManagerTemplate) {
     ---@return nil
     Create = function(self)
 		BaseManagerTemplate.Create(self)
+		
+		self.MaximumConstructionEngineers = ScenarioInfo.Options.Difficulty
 		
 		-- Default to no transports needed
 		self.TransportsNeeded = 0
@@ -119,23 +132,22 @@ BaseManager = Class(BaseManagerTemplate) {
 	
 	--- Thread that will upgrade factories, radar, etc. to next level
 	--- Recoded to handle most common cases of unexpected situations (including players switching to the AI army and messing up the orders given to it)
+	--- The upgrade is added to be structure's build queue when it's first detected that it needs to upgrade
+	--- If for some unexpected reason the upgrade didn't happen, and the unit is practically idle (guarding a factory and not building anything also counts as idle), then try again
     ---@param self BaseManager
     ---@param unit Unit
     ---@param unitName string
     BaseManagerUpgrade = function(self, unit, unitName)
 		
-		-- If we were set to upgrade, and we're busy building something
+		-- If we were set to upgrade, and we're busy building something, return
+		-- A factory is practically idle when it's assisting another factory, and not building anything, in that case the unit is in the 'Guarding' state, and not the 'Idle' state
 		if unit.SetToUpgrade and ((unit:IsUnitState('Upgrading') or unit:IsUnitState('Building')) or (unit:IsUnitState('Guarding') and unit:IsUnitState('Building'))) then
 			return
 		end
 		
-		-- Use unit callbacks
-		-- Hook the structure we picked for upgrading, and the upgrade as well
-		-- We gotta chain a hook, inside another hook
-		
-		-- Called when the unit starts building
-		-- Set flag as hooked, so we don't duplicate this if we need to re-order the upgrade
-		if not unit.HookedForUpgrade then
+		-- TODO: Use unit callbacks instead, priority if this results in a hard game crash!
+		-- Set a unit flag as hooked, so we don't duplicate this if we need to re-order the upgrade
+		if not unit.AddedUpgradeCallback then
 			local CampaignOnStartBuild = unit.OnStartBuild
 			
 			-- Hook the structure, called when the unit starts building
@@ -144,21 +156,13 @@ BaseManager = Class(BaseManagerTemplate) {
 
 				if order == 'Upgrade' then
 					unitBeingBuilt.BuildingUpgrade = true
+					unitBeingBuilt.UnitName = unitName
 					
-					-- Hook the upgrade, called when the upgrade is finished
-					local CampaignOnStopBeingBuilt = unitBeingBuilt.OnStopBeingBuilt
-					unitBeingBuilt.OnStopBeingBuilt = function(self, builder, layer)
-						CampaignOnStopBeingBuilt(self, builder, layer)
-			
-						if self.BuildingUpgrade then
-							ScenarioInfo.UnitNames[self.Army][unitName] = self
-							SPEW('Structure upgrade thread finished for: ' .. repr(unitName))
-						end
-					end
-					SPEW('Structure upgrade thread set structure as potential new unit: ' .. repr(unitName))
+					-- Add build finished callback
+					unitBeingBuilt:AddUnitCallback(UpgradeOnStopBeingBuilt, 'OnStopBeingBuilt')
 				end
-				unit.HookedForUpgrade = true
 			end
+			unit.AddedUpgradeCallback = true
 		end
 		
 		WaitTicks(1)
@@ -169,7 +173,6 @@ BaseManager = Class(BaseManagerTemplate) {
 		
         if upgradeID then
             IssueUpgrade({unit}, upgradeID)
-			SPEW('Structure upgrade thread started for: ' .. repr(unitName))
 			-- Set the unit as upgrading, in case we got units to build before the upgrade command
 			unit.SetToUpgrade = true
         else
