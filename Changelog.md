@@ -1,5 +1,10 @@
 Changelog
 
+# v11 (30.08.2023)
+- Fixed (hopefully for the last time) the BaseManager's structure upgrade method, it's using unit build callbacks now.
+- Recoded the BaseManager's Engineer build function thread via unit build callbacks as well, they'll pick new structures to build faster once their current structure is finished, added a lobby option to set the delay for it.
+- Misc code cleanups, probably.
+
 # v10 (04.08.2023)
 - Code cleanups in preparation for the upcoming FAF patch, some of the mod's changes are included in the patch.
 - Attempt at fixing the BaseManager's structure upgrade method.

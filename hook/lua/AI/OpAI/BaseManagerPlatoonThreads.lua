@@ -16,11 +16,11 @@ local Buff = import("/lua/sim/buff.lua")
 local BMBC = import("/lua/editor/basemanagerbuildconditions.lua")
 local MIBC = import("/lua/editor/miscbuildconditions.lua")
 
-local EngineerBuildDelay = tonumber(ScenarioInfo.Options.EngineerBuildDelay) or 15
+local EngineerBuildDelay = tonumber(ScenarioInfo.Options.EngineerBuildDelay) or 10
 
 do
 	local CrashVDist2 = VDist2
-	local CrashEntityCategoryContains = EntityCategoryContains
+	--local CrashEntityCategoryContains = EntityCategoryContains
 
 	VDist2 = function(x1, y1, x2, y2)
 		if (x1 and y1 and x2 and y2) then
@@ -35,13 +35,13 @@ do
 		end
 	end
 	
-	EntityCategoryContains = function(category, unit)
-		if (not unit or unit.Dead) or not unit.IsUnit then
-			error('*MAJOR AI ERROR: EntityCategoryContains received invalid unit parameter, this could lead to a hard crash!', 2)
-		else
-			return CrashEntityCategoryContains(category, unit)
-		end
-	end
+	--EntityCategoryContains = function(category, unit)
+		--if (not unit or unit.Dead) or not unit.IsUnit then
+			--error('*MAJOR AI ERROR: EntityCategoryContains received invalid unit parameter, this could lead to a hard crash!', 2)
+		--else
+			--return CrashEntityCategoryContains(category, unit)
+		--end
+	--end
 end
 
 --- Split the platoon into single unit platoons
@@ -90,13 +90,18 @@ function BaseManagerEngineerPlatoonSplit(platoon)
     aiBrain:DisbandPlatoon(platoon)
 end
 
+--- Callback function when an engineering unit starts building something
+--- If that 'something' is a named unit (structure) the engineer was told to build, then it caches the necessary data on the named unit
+--- Also resets the unit name we cached on the Engineer, so if any mishaps happen, the engineer can just build something else afterwards
 ---@param unit Unit
 function EngineerOnStartBuild(unit, unitBeingBuilt)
-	-- Things like the AI brains and army indexes are actually cached on the unit, we don't need to use engine calls to get them
+	-- We cached the name of the unit we want to build, and the engineer's BaseManager, 1st when we ordered the engineer to build, 2nd when the engineer's platoon was formed
 	local unitName = unit.BuildingUnitName
 	local bManager = unit.Brain.BaseManagers[unit.BaseName]
-
-	if unitName and unitBeingBuilt and bManager and EntityCategoryContains(categories.STRUCTURE, unitBeingBuilt) then
+	
+	-- Things like the AI brains and army indexes are cached on the unit, we don't need to use engine calls to get them
+	-- Make sure the engineer was told to build a specific named unit, its BaseManager exists, and the named unit is a structure
+	if unitName and bManager and EntityCategoryContains(categories.STRUCTURE, unitBeingBuilt) then
 		LOG('Building started construction named: ' .. repr(unit.BuildingUnitName))
 		unitBeingBuilt.UnitName = unitName
 		unitBeingBuilt.BaseName = unit.BaseName
@@ -112,6 +117,8 @@ function EngineerOnStartBuild(unit, unitBeingBuilt)
 	end
 end
 
+--- Callback function when an engineering unit failed to build something, this is called in several cases
+--- Resets the unit name we assigned to the engineer, so in case it's still alive, it can start building something else
 ---@param unit Unit
 function EngineerOnFailedToBuild(unit)
 	if unit.BuildingUnitName then
@@ -120,6 +127,8 @@ function EngineerOnFailedToBuild(unit)
 	end
 end
 
+--- Callback function when a (preferably) structure is finished building
+--- Marks the unit as finished for the unit's BaseManager, so Engineers won't try to finish it (infinite loop of repair orders on a full health unit), and decrements the amount of times it can be rebuilt
 ---@param unit Unit
 function StructureOnStopBeingBuilt(unit)
 	local bManager = unit.Brain.BaseManagers[unit.BaseName]
@@ -743,8 +752,6 @@ function BaseManagerEngineerThread(platoon)
                 end
 
                 repeat
-					WaitTicks(1)
-					
 					if not aiBrain:PlatoonExists(platoon) then
 						return
 					end

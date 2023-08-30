@@ -40,11 +40,9 @@ end
 ---@return boolean
 function UnfinishedBuildingsCheck(aiBrain, baseName)
     local bManager = aiBrain.BaseManagers[baseName]
-    if not bManager then
-        return false
-    end
-    -- Return out if the list is empty or all buildings are finished
-    if table.empty(bManager.UnfinishedBuildings) then
+	
+	-- Return if the BaseManager doesn't exist, or the list is empty, or all buildings are finished
+    if not bManager or table.empty(bManager.UnfinishedBuildings) then
         return false
     end
 
