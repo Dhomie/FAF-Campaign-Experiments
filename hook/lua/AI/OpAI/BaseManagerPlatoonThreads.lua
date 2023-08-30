@@ -768,7 +768,7 @@ function BaseManagerEngineerThread(platoon)
                             end
                         until eng.Dead or eng:IsIdleState()
 					end
-                until not retBool and aiBrain:PlatoonExists(platoon)
+                until not retBool
             end
         end
     end
