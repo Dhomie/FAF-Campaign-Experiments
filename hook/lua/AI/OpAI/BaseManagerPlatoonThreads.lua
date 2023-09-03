@@ -18,32 +18,6 @@ local MIBC = import("/lua/editor/miscbuildconditions.lua")
 
 local EngineerBuildDelay = tonumber(ScenarioInfo.Options.EngineerBuildDelay) or 10
 
-do
-	local CrashVDist2 = VDist2
-	--local CrashEntityCategoryContains = EntityCategoryContains
-
-	VDist2 = function(x1, y1, x2, y2)
-		if (x1 and y1 and x2 and y2) then
-			return CrashVDist2(x1, y1, x2, y2)
-		else
-			if not (x1 and y1) then
-				WARN('VDist2 received invalid parameters for first position')
-			elseif not (x2 and y2) then
-				WARN('VDist2 received invalid parameters for second position')
-			end
-			error('*MAJOR AI ERROR: VDist2 received invalid parameter, this could lead to a hard crash!', 2)
-		end
-	end
-	
-	--EntityCategoryContains = function(category, unit)
-		--if (not unit or unit.Dead) or not unit.IsUnit then
-			--error('*MAJOR AI ERROR: EntityCategoryContains received invalid unit parameter, this could lead to a hard crash!', 2)
-		--else
-			--return CrashEntityCategoryContains(category, unit)
-		--end
-	--end
-end
-
 --- Split the platoon into single unit platoons
 ---@param platoon Platoon
 function BaseManagerEngineerPlatoonSplit(platoon)
@@ -102,7 +76,7 @@ function EngineerOnStartBuild(unit, unitBeingBuilt)
 	-- Things like the AI brains and army indexes are cached on the unit, we don't need to use engine calls to get them
 	-- Make sure the engineer was told to build a specific named unit, its BaseManager exists, and the named unit is a structure
 	if unitName and bManager and EntityCategoryContains(categories.STRUCTURE, unitBeingBuilt) then
-		LOG('Building started construction named: ' .. repr(unit.BuildingUnitName))
+		--LOG('Building started construction named: ' .. repr(unit.BuildingUnitName))
 		unitBeingBuilt.UnitName = unitName
 		unitBeingBuilt.BaseName = unit.BaseName
 		bManager.UnfinishedBuildings[unitName] = true
@@ -122,7 +96,7 @@ end
 ---@param unit Unit
 function EngineerOnFailedToBuild(unit)
 	if unit.BuildingUnitName then
-		LOG('Building failed construction named: ' .. repr(unit.BuildingUnitName))
+		--LOG('Building failed construction named: ' .. repr(unit.BuildingUnitName))
 		unit.BuildingUnitName = nil
 	end
 end
@@ -134,7 +108,7 @@ function StructureOnStopBeingBuilt(unit)
 	local bManager = unit.Brain.BaseManagers[unit.BaseName]
 	
 	if bManager.UnfinishedBuildings[unit.UnitName] then
-		LOG('Building finished construction named: ' .. repr(unit.UnitName))
+		--LOG('Building finished construction named: ' .. repr(unit.UnitName))
 		bManager.UnfinishedBuildings[unit.UnitName] = nil
 		bManager:DecrementUnitBuildCounter(unit.UnitName)
 	end
