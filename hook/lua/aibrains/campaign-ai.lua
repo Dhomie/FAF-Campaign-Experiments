@@ -29,6 +29,58 @@ AIBrain = Class(CampaignAIBrain) {
 		end
 	end,
 	
+	--- AI PLATOON MANAGEMENT
+    --- SC1's PlatoonBuildManager, used as its base AI even for skirmish, and also for FA's campaign
+    --- This system is meant to be able to give some data about the platoon you want and have them built and formed into platoons at will.
+    ---@param self CampaignAIBrain
+    InitializePlatoonBuildManager = function(self)
+        if not self.PBM then
+            ---@class AiPlatoonBuildManager
+            self.PBM = {
+                BuildCheckInterval = nil,
+                Platoons = {
+                    Air = {},
+                    Land = {},
+                    Sea = {},
+                    Gate = {},
+                },
+                Locations = {
+                    -- {
+                    --  Location,
+                    --  Radius,
+                    --  LocType, ('MAIN', 'EXPANSION')
+                    --  PrimaryFactories = {Air = X, Land = Y, Sea = Z}
+                    --  UseCenterPoint, - Bool
+                    --}
+                },
+                PlatoonTypes = {'Air', 'Land', 'Sea', 'Gate'},
+                NeedSort = {
+                    ['Air'] = false,
+                    ['Land'] = false,
+                    ['Sea'] = false,
+                    ['Gate'] = false,
+                },
+                RandomSamePriority = false,
+                BuildConditionsTable = {},
+            }
+            -- Create basic starting area
+            local strtX, strtZ = self:GetArmyStartPos()
+            self:PBMAddBuildLocation({strtX, 20, strtZ}, 100, 'MAIN')
+
+            -- TURNING OFF AI POOL PLATOON, I MAY JUST REMOVE THAT PLATOON FUNCTIONALITY LATER
+            local poolPlatoon = self:GetPlatoonUniquelyNamed('ArmyPool')
+            if poolPlatoon then
+                poolPlatoon:TurnOffPoolAI()
+            end
+            self.HasPlatoonList = false
+            self:PBMSetEnabled(true)
+			
+			-- Create the global builder table where most of the builder data will be stored, I have no idea why this wasn't initalized here to begin with
+			-- It was initalized in self:PBMAddPlatoon() for whatever reason
+			ScenarioInfo.BuilderTable[self.CurrentPlan] = {Air = {}, Sea = {}, Land = {}, Gate = {}}
+        end
+    end,
+	
 	-- Main building and forming platoon thread for the Platoon Build Manager
     ---@param self CampaignAIBrain
     PlatoonBuildManagerThread = function(self)
@@ -116,11 +168,14 @@ AIBrain = Class(CampaignAIBrain) {
                                     local suggestedFactories = {v.PrimaryFactories[typev]}
                                     local factories = self:CanBuildPlatoon(vp.PlatoonTemplate, suggestedFactories)
                                     vp.BuildTemplate = self:PBMBuildNumFactories(vp.PlatoonTemplate, v, typev, factories)
+									local template = vp.BuildTemplate
+									
                                     -- Check all the requirements to build the platoon
                                     -- The Primary Factory can actually build this platoon
                                     -- The platoon build condition has been met
+									local ptnSize = personality:GetPlatoonSize()
                                     -- Finally, build the platoon.
-                                    self:BuildPlatoon(vp.BuildTemplate, factories, personality:GetPlatoonSize())
+                                    self:BuildPlatoon(template, factories, ptnSize)
                                     self:PBMSetHandleBuilding(self.PBM.Platoons[typev][kp])
                                     if globalBuilder.GenerateTimeOut then
                                         vp.BuildTimeOut = self:PBMGenerateTimeOut(globalBuilder, factories, v, typev)
@@ -138,7 +193,7 @@ AIBrain = Class(CampaignAIBrain) {
                         end
                     end
                 end
-                WaitSeconds(0.1)
+                WaitTicks(1)
             end
             -- Do it all over again in 15 seconds.
             WaitSeconds(self.PBM.BuildCheckInterval or 15)

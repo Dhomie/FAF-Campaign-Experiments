@@ -1,4 +1,6 @@
 Changelog
+#v12 (03.09.2023
+- Added a **testing** version for the OpAI overhaul, see BaseOpAI.lua
 
 # v11 (30.08.2023)
 - Fixed (hopefully for the last time) the BaseManager's structure upgrade method, it's using unit build callbacks now.
