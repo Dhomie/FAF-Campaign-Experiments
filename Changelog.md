@@ -1,5 +1,9 @@
 Changelog
-#v12 (03.09.2023
+#v13 (23.09.2023)
+- Reverted the OpAI overhaul, it causes too many issues with existing missions, instead a new individual file might be used for new custom/reworked missions.
+- Misc. changes, and fixes.
+
+#v12 (03.09.2023)
 - Added a **testing** version for the OpAI overhaul, see BaseOpAI.lua
 
 # v11 (30.08.2023)

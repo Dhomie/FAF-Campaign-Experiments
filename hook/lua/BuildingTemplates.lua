@@ -3,7 +3,7 @@
 --  Author(s):  Dru Staltman
 --	Edited by: Dhomie
 --
---  Summary  : -Building Templates used by the AI base managers
+--  Summary  : Building Templates used by the AI base managers
 --
 --  Copyright © 2005 Gas Powered Games, Inc.  All rights reserved.
 --------------------------------------------------------------------

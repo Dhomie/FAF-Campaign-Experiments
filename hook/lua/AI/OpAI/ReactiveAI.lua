@@ -14,7 +14,7 @@ local BMPT = '/lua/ai/opai/basemanagerplatoonthreads.lua'
 local CampaignReactiveAI = ReactiveAI
 
 ReactiveAI = Class(CampaignReactiveAI) {
-	--Changed old GPG era 'FighterBomber' children type to the correct renamed 'CombatFighters' type
+	--Changed old GPG era 'FighterBomber' and 'StrategicBombers' children types to the correctly renamed 'CombatFighters' and 'StratBombers' types
     ReactionData = {
         -- This uses purely air to respond.  It is the easiest to implement and has the least chance of breaking
         AirRetaliation = {
@@ -34,9 +34,9 @@ ReactiveAI = Class(CampaignReactiveAI) {
             },
             ExperimentalLand = { 
                 OpAI = 'AirAttacks', 
-                Children = { 'HeavyGunships', 'Gunships', 'Bombers', 'CombatFighters', },
+                Children = { 'StratBombers', 'HeavyGunships', 'Gunships', 'Bombers', },
                 Priority = 1200,
-                ChildCount = 3,
+                ChildCount = 4,
                 PlatoonAIFunction = { '/lua/ScenarioPlatoonAI.lua', 'CategoryHunterPlatoonAI' },
                 PlatoonData = {
                     CategoryList = TrackingCategories.ExperimentalLand,
@@ -62,8 +62,8 @@ ReactiveAI = Class(CampaignReactiveAI) {
             },
             Nuke = { 
                 OpAI = 'AirAttacks', 
-                Children = { 'StrategicBombers', 'HeavyGunships', 'Gunships', 'Bombers', },
-                ChildCount = 1,
+                Children = { 'StratBombers', 'HeavyGunships', 'Gunships', 'Bombers', },
+                ChildCount = 3,
                 Priority = 1200,
                 PlatoonAIFunction = { '/lua/ScenarioPlatoonAI.lua', 'CategoryHunterPlatoonAI' },
                 PlatoonData = {
@@ -76,8 +76,8 @@ ReactiveAI = Class(CampaignReactiveAI) {
             },
             HLRA = { 
                 OpAI = 'AirAttacks', 
-                Children = { 'StrategicBombers', 'HeavyGunships', 'Gunships', 'Bombers', },
-                ChildCount = 1,
+                Children = { 'StratBombers', 'HeavyGunships', 'Gunships', 'Bombers', },
+                ChildCount = 3,
                 Priority = 1200,
                 PlatoonAIFunction = { '/lua/ScenarioPlatoonAI.lua', 'CategoryHunterPlatoonAI' },
                 PlatoonData = {

@@ -117,7 +117,7 @@ AIBrain = Class(CampaignAIBrain) {
                         if v.PrimaryFactories[typev] then
                             local priFac = v.PrimaryFactories[typev]
                             local numBuildOrders = nil
-                            if priFac and not priFac.Dead then
+                            if not priFac.Dead then
                                 numBuildOrders = priFac:GetNumBuildOrders(categories.ALLUNITS)
                                 if numBuildOrders == 0 then
                                     local guards = priFac:GetGuards()
@@ -196,7 +196,7 @@ AIBrain = Class(CampaignAIBrain) {
                 WaitTicks(1)
             end
             -- Do it all over again in 15 seconds.
-            WaitSeconds(self.PBM.BuildCheckInterval or 15)
+            WaitSeconds(self.PBM.BuildCheckInterval or 10)
         end
     end,
     --- Form platoons
@@ -344,7 +344,6 @@ AIBrain = Class(CampaignAIBrain) {
             end
         end
     end,
-	
-	
+
 }
 end

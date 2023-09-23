@@ -76,13 +76,14 @@ AttackManager = ClassSimple {
     Initialize = function(self, attackDataTable)
         self:AddDefaultPlatoons(attackDataTable.AttackConditions)
         if attackDataTable then
-            self.AttackCheckInterval = attackDataTable.AttackCheckInterval or 15
+            self.AttackCheckInterval = attackDataTable.AttackCheckInterval or 10
             if attackDataTable.Platoons then
                 self:AddPlatoonsTable(attackDataTable.Platoons)
             end
         elseif not self.AttackCheckInterval then
-            self.AttackCheckInterval = 15
+            self.AttackCheckInterval = 10
         end
+		
         self['AttackManagerState'] = 'ACTIVE'
         self['AttackManagerThread'] = self:ForkThread(self.AttackManagerThread)
     end,
@@ -91,11 +92,11 @@ AttackManager = ClassSimple {
 	---@param self AttackManager
     AttackManagerThread = function(self)
         while true do
-            WaitSeconds(self.AttackCheckInterval)
             if self.AttackManagerState == 'ACTIVE' and self.Platoons then
                 self:AttackManageAttackVectors()
                 self:FormAttackPlatoon()
             end
+			WaitSeconds(self.AttackCheckInterval)
         end
     end,
 	
@@ -105,7 +106,7 @@ AttackManager = ClassSimple {
     AddDefaultPlatoons = function(self, AttackConds)
         if not AttackConds then
             AttackConds = {
-                { '/lua/editor/MiscBuildConditions.lua', 'False', {'default_brain'}},
+                {'/lua/editor/MiscBuildConditions.lua', 'False', {'default_brain'}},
             }
         end
 

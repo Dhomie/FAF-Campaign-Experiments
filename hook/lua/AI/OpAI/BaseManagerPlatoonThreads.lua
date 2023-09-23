@@ -142,8 +142,7 @@ function BaseManagerSingleEngineerPlatoon(platoon)
             if not commandUnit and BMBC.ExpansionBasesEnabled(aiBrain, baseName) and BMBC.ExpansionBasesNeedEngineers(aiBrain, baseName) then
                 ExpansionEngineer(platoon)
 
-            elseif canPermanentAssist and bManager.ConditionalBuildData.Unit and not bManager.ConditionalBuildData.Unit.Dead
-            and bManager.ConditionalBuildData.NeedsMoreBuilders() then
+            elseif canPermanentAssist and bManager.ConditionalBuildData.Unit and not bManager.ConditionalBuildData.Unit.Dead and bManager.ConditionalBuildData.NeedsMoreBuilders() then
                 AssistConditionalBuild(platoon)
 
             -- If we can do a conditional build here, then do it

@@ -102,7 +102,7 @@ end
 ---@param tech integer
 ---@return boolean
 function TransportsTechAllowed(aiBrain, baseName, tech)
-    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].TransportsTech >= tech
+    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].TransportsTech == tech
 end
 
 ---@param aiBrain AIBrain

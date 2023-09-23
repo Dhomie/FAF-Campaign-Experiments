@@ -57,18 +57,16 @@ Scenario = {
             'OST_BLANK_TEMPLATE',
             '',
         },
-
         ['OST_EngineerAttack_T2Engineers'] = {
             'OST_EngineerAttack_T2Engineers',
             '',
-            { 'uel0208', 0, 6, 'attack', 'None' },
+            { 'uel0208', 0, 2, 'attack', 'None' },
         },
         ['OST_EngineerAttack_T2Transport'] = {
             'OST_EngineerAttack_T2Transport',
             '',
             { 'uea0104', 0, 1, 'support', 'None' },
         },
-
         ['OST_EngineerAttack_T2EngineersShields'] = {
             'OST_EngineerAttack_T2EngineersShields',
             '',
@@ -85,12 +83,10 @@ Scenario = {
             '',
             { 'uea0107', 0, 1, 'support', 'None' },
         },
-
-		
         ['OST_EngineerAttack_T3Engineers'] = {
             'OST_EngineerAttack_T3Engineers',
             '',
-            { 'uel0309', 0, 4, 'attack', 'None' },
+            { 'uel0309', 0, 2, 'attack', 'None' },
         },
         ['OST_EngineerAttack_T3Transport'] = {
             'OST_EngineerAttack_T3Transport',
@@ -100,7 +96,7 @@ Scenario = {
         ['OST_EngineerAttack_T2CombatEngineers'] = {
             'OST_EngineerAttack_T2CombatEngineers',
             '',
-            { 'xel0209', 0, 1, 'attack', 'None'},
+            { 'xel0209', 0, 2, 'attack', 'None'},
         },
     },
 
