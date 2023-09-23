@@ -44,7 +44,7 @@ function StructureOnStartBuild(unit, unitBeingBuilt)
 	-- We don't use different upgrades paths for coop, only that of the original SCFA (no Support Factory upgrade paths whatsoever)
 	-- If you decide to mess around with AI armies in cheat mode, and order a newly added upgrade path instead anyway, then any mishaps happening afterwards is on you!
 	if unit:IsUnitState('Upgrading') then
-		LOG('Structure building upgrade named: ' .. repr(unit.UnitName))
+		--LOG('Structure building upgrade named: ' .. repr(unit.UnitName))
 		unitBeingBuilt.BuildingUpgrade = true
 		unitBeingBuilt.UnitName = unit.UnitName
 
@@ -60,7 +60,7 @@ end
 --- Updates the ScenarioInfo.UnitNames table with the new unit
 ---@param unit Unit
 function UpgradeOnStopBeingBuilt(unit)
-	LOG('Structure finished upgrade named: ' .. repr(unit.UnitName))
+	--LOG('Structure finished upgrade named: ' .. repr(unit.UnitName))
 	ScenarioInfo.UnitNames[unit.Army][unit.UnitName] = unit
 end
 
@@ -74,7 +74,7 @@ BaseManager = Class(BaseManagerTemplate) {
     Create = function(self)
 		BaseManagerTemplate.Create(self)
 		
-		self.MaximumConstructionEngineers = ScenarioInfo.Options.Difficulty
+		self.MaximumConstructionEngineers = (ScenarioInfo.Options.Difficulty or 3) * 2
 		
 		-- Default to no transports needed
 		self.TransportsNeeded = 0
@@ -151,7 +151,7 @@ BaseManager = Class(BaseManagerTemplate) {
 	--- Function that will upgrade factories, radar, etc. to next level
 	--- Recoded to use unit build callbacks instead of threads
 	--- It should handle most common cases of unexpected situations (like players switching to the AI's army and messing up the orders given to it)
-	--- The upgrade is added to be structure's build queue when it's first detected that it needs to upgrade
+	--- The upgrade is added to the structure's build queue when it's first detected that it needs to upgrade
 	--- If for some unexpected reason the upgrade didn't happen, and the unit is practically idle (guarding a factory and not building anything also counts as idle), then try again
     ---@param self BaseManager
     ---@param unit Unit
@@ -291,8 +291,9 @@ BaseManager = Class(BaseManagerTemplate) {
 	---@param self BaseManager
     LoadDefaultBaseTransports = function(self)
         local faction = self.AIBrain:GetFactionIndex()
+		local factionName = Factions[faction].Key
+		
         for tech = 1, 2 do
-            local factionName = Factions[faction].Key
             self.AIBrain:PBMAddPlatoon {
                 BuilderName = 'BaseManager_TransportPlatoon_' .. self.BaseName .. factionName .. tech,
                 PlatoonTemplate = self:CreateTransportPlatoonTemplate(tech, faction),
@@ -317,7 +318,7 @@ BaseManager = Class(BaseManagerTemplate) {
             PlatoonTemplate = {
                 'TransportTemplate',
                 'NoPlan',
-                { "xea0306", 1, 2, 'Attack', 'None' },
+                { "xea0306", -1, 1, 'Attack', 'None' },
             },
             Priority = 600,
             PlatoonType = 'Air',
@@ -335,6 +336,8 @@ BaseManager = Class(BaseManagerTemplate) {
         }
     end,
 	
+	--- Note: When the platoon template's individual unit number's required minimum is *-1*, the PBM will automatically build as many factories are capable of building the unit in a base.
+	--- In the below case, if the base has 6 T3 Air Factories, the PBM will build 6 Transports
 	---@param self BaseManager
 	---@param techLevel number
 	---@param faction number
@@ -343,7 +346,7 @@ BaseManager = Class(BaseManagerTemplate) {
         local template = {
             'TransportTemplate',
             'NoPlan',
-            { 'uea', 1, 3, 'Attack', 'None' },
+            {'uea', -1, 1, 'Attack', 'None'},
         }
         if techLevel == 1 then
             template[3][1] = template[3][1] .. '0107'

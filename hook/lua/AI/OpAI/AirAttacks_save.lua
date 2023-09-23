@@ -47,12 +47,12 @@ Scenario = {
         ['OST_AirAttacks_T1Platoon1'] = {
             'OST_AirAttacks_T1Platoon1',
             '',
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T1Platoon2'] = {
             'OST_AirAttacks_T1Platoon2',
             '',
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
 		
 	-- Tech 2
@@ -60,36 +60,36 @@ Scenario = {
         ['OST_AirAttacks_T2Platoon1'] = {
             'OST_AirAttacks_T2Platoon1',
             '',
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T2Platoon2'] = {
             'OST_AirAttacks_T2Platoon2',
             '',
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T2Platoon3Naval'] = {
             'OST_AirAttacks_T2Platoon3Naval',
             '',
-            { 'uea0204', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0204', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T2Platoon4Naval'] = {
             'OST_AirAttacks_T2Platoon4Naval',
             '',
-            { 'uea0204', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0204', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttack_T2Gunships'] = {
             'OST_AirAttacks_T2Gunships',
             '',
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttack_T2TorpedoBombers'] = {
             'OST_AirAttacks_T2TorpedoBombers',
             '',
-            { 'uea0204', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0204', -1, 1, 'Attack', 'AttackFormation' },
         },
 		
 	-- Tech 3
@@ -97,73 +97,73 @@ Scenario = {
         ['OST_AirAttacks_T3Platoon1'] = {
             'OST_AirAttacks_T3Platoon1',
             '',
-            { 'uea0303', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0303', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon2'] = {
             'OST_AirAttacks_T3Platoon2',
             '',
-            { 'uea0304', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0304', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon3'] = {
             'OST_AirAttacks_T3Platoon3',
             '',
-            { 'uea0303', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0303', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon4'] = {
             'OST_AirAttacks_T3Platoon4',
             '',
-            { 'uea0304', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0304', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon5UEF'] = {
             'OST_AirAttacks_T3Platoon5UEF',
             '',
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon6UEF'] = {
             'OST_AirAttacks_T3Platoon6UEF',
             '',
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon7Naval'] = {
             'OST_AirAttacks_T3Platoon7Naval',
             '',
-            { 'uea0303', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0204', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0303', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0204', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3Platoon8Naval'] = {
             'OST_AirAttacks_T3Platoon8Naval',
             '',
-            { 'uea0304', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0204', -1, 1, 'attack', 'AttackFormation' },
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0304', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0204', -1, 1, 'Attack', 'AttackFormation' },
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3StrategicBombers'] = {
             'OST_AirAttacks_T3StrategicBombers',
             '',
-            { 'uea0304', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0304', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3AirSuperiority'] = {
             'OST_AirAttacks_T3AirSuperiority',
             '',
-            { 'uea0303', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0303', -1, 1, 'Attack', 'AttackFormation' },
         },
         ['OST_AirAttacks_T3HeavyGunships'] = {
             'OST_AirAttacks_T3HeavyGunships',
             '',
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },
         },
 
     --[[---------------------------------------------------------------]]--
@@ -174,27 +174,27 @@ Scenario = {
 	-- T3
         ['OST_AirAttacks_T3HeavyGunshipPlatoon1'] = {
             'OST_AirAttacks_T3HeavyGunshipPlatoon1', '',
-            { 'uea0303', -1, 1, 'attack', 'AttackFormation' },  --Air Sup
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },  --XPack T3 Gunship
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },  --Interceptor
+            { 'uea0303', -1, 1, 'Attack', 'AttackFormation' },  --Air Sup
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },  --XPack T3 Gunship
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },  --Interceptor
         },
         ['OST_AirAttacks_T3HeavyGunshipPlatoon2'] = {
             'OST_AirAttacks_T3HeavyGunshipPlatoon2', '',
-            { 'uea0304', -1, 1, 'attack', 'AttackFormation' },  --Strat Bomber
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },  --XPack T3 Gunship
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
+            { 'uea0304', -1, 1, 'Attack', 'AttackFormation' },  --Strat Bomber
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },  --XPack T3 Gunship
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
         },
         ['OST_AirAttacks_T3HeavyGunshipPlatoon3'] = {
             'OST_AirAttacks_T3HeavyGunshipPlatoon3', '',
-            { 'uea0303', -1, 1, 'attack', 'AttackFormation' },  --Air Sup
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },  --XPack T3 Gunship
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
+            { 'uea0303', -1, 1, 'Attack', 'AttackFormation' },  --Air Sup
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },  --XPack T3 Gunship
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
         },
         ['OST_AirAttacks_T3HeavyGunshipPlatoon4'] = {
             'OST_AirAttacks_T3HeavyGunshipPlatoon4', '',
-            { 'uea0304', -1, 1, 'attack', 'AttackFormation' },  --Strat Bomber
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },  --XPack T3 Gunship
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },  --Interceptor
+            { 'uea0304', -1, 1, 'Attack', 'AttackFormation' },  --Strat Bomber
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },  --XPack T3 Gunship
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },  --Interceptor
         },
 
 
@@ -202,17 +202,17 @@ Scenario = {
 	-- T2
         ['OST_AirAttacks_T2SeraphimPlatoon1'] = {
             'OST_AirAttacks_T2SeraphimPlatoon1', '',
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },  --Gunship
-            { 'xsa0202', -1, 1, 'attack', 'AttackFormation' },  --Combat Fighter
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },  --Gunship
+            { 'xsa0202', -1, 1, 'Attack', 'AttackFormation' },  --Combat Fighter
         },
         ['OST_AirAttacks_T2SeraphimPlatoon2'] = {
             'OST_AirAttacks_T2SeraphimPlatoon2', '',
-            { 'xsa0202', -1, 1, 'attack', 'AttackFormation' },  --Combat Fighter
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
+            { 'xsa0202', -1, 1, 'Attack', 'AttackFormation' },  --Combat Fighter
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
         },
         ['OST_AirAttacks_T2SeraphimPlatoon3'] = {
             'OST_AirAttacks_T2SeraphimPlatoon3', '',
-            { 'xsa0202', -1, 1, 'attack', 'AttackFormation' },  --Combat Fighter
+            { 'xsa0202', -1, 1, 'Attack', 'AttackFormation' },  --Combat Fighter
         },
 
 
@@ -220,88 +220,88 @@ Scenario = {
     -- T2
         ['OST_AirAttacks_T2UEFPlatoon1'] = {
             'OST_AirAttacks_T2UEFPlatoon1', '',
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },  --Gunship
-            { 'dea0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },  --Gunship
+            { 'dea0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
         },
         ['OST_AirAttacks_T2UEFPlatoon2'] = {
             'OST_AirAttacks_T2UEFPlatoon2', '',
-            { 'dea0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
+            { 'dea0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
         },
         ['OST_AirAttacks_T2UEFPlatoon3'] = {
             'OST_AirAttacks_T2UEFPlatoon3', '',
-            { 'dea0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'dea0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
         },
 
     --[[------[ AEON SPECIFIC ]------]]--
     -- T2
         ['OST_AirAttacks_T2AeonPlatoon1'] = {
             'OST_AirAttacks_T2AeonPlatoon1', '',
-            { 'uea0203', -1, 1, 'attack', 'AttackFormation' },  --Gunship
-            { 'xaa0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'uea0203', -1, 1, 'Attack', 'AttackFormation' },  --Gunship
+            { 'xaa0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
         },
         ['OST_AirAttacks_T2AeonPlatoon2'] = {
             'OST_AirAttacks_T2AeonPlatoon2', '',
-            { 'xaa0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
+            { 'xaa0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
         },
         ['OST_AirAttacks_T2AeonPlatoon3'] = {
             'OST_AirAttacks_T2AeonPlatoon3', '',
-            { 'xaa0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'xaa0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
         },
         ['OST_AirAttacks_T2AeonPlatoon4'] = {
             'OST_AirAttacks_T2AeonPlatoon4', '',
-            { 'daa0206', -1, 1, 'attack', 'AttackFormation' },  --Mercy
+            { 'daa0206', -1, 1, 'Attack', 'AttackFormation' },  --Mercy
         },
 
     -- T3
         ['OST_AirAttacks_T3AeonAntiNaval1'] = {
             'OST_AirAttacks_T3AeonAntiNaval1', '',
-            { 'xaa0306', -1, 1, 'attack', 'AttackFormation' },  --XPack Torp Bomber
+            { 'xaa0306', -1, 1, 'Attack', 'AttackFormation' },  --XPack Torp Bomber
         },
         ['OST_AirAttacks_T3AeonAntiNaval2'] = {
             'OST_AirAttacks_T3AeonAntiNaval2', '',
-            { 'xaa0306', -1, 1, 'attack', 'AttackFormation' },  --XPack Torp Bomber
-            { 'uea0305', -1, 1, 'attack', 'AttackFormation' },  --XPack T3 Gunship
+            { 'xaa0306', -1, 1, 'Attack', 'AttackFormation' },  --XPack Torp Bomber
+            { 'uea0305', -1, 1, 'Attack', 'AttackFormation' },  --XPack T3 Gunship
         },
 
     --[[------[ CYBRAN SPECIFIC ]------]]--
     -- T1
         ['OST_AirAttacks_T1CybranPlatoon1'] = {
             'OST_AirAttacks_T1CybranPlatoon1', '',
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
-            { 'xra0105', -1, 1, 'attack', 'AttackFormation' },  --XPack Light Gunships
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
+            { 'xra0105', -1, 1, 'Attack', 'AttackFormation' },  --XPack Light Gunships
         },
         ['OST_AirAttacks_T1CybranPlatoon2'] = {
             'OST_AirAttacks_T1CybranPlatoon2', '',
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },  --Interceptor
-            { 'xra0105', -1, 1, 'attack', 'AttackFormation' },  --XPack Light Gunships
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },  --Interceptor
+            { 'xra0105', -1, 1, 'Attack', 'AttackFormation' },  --XPack Light Gunships
         },
         ['OST_AirAttacks_T1CybranPlatoon3'] = {
             'OST_AirAttacks_T1CybranPlatoon3', '',
-            { 'xra0105', -1, 1, 'attack', 'AttackFormation' },  --XPack Light Gunships
+            { 'xra0105', -1, 1, 'Attack', 'AttackFormation' },  --XPack Light Gunships
         },
         ['OST_AirAttacks_T1CybranPlatoon4'] = {
             'OST_AirAttacks_T1CybranPlatoon4', '',
-            { 'uea0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
-            { 'uea0102', -1, 1, 'attack', 'AttackFormation' },  --Interceptor
-            { 'xra0105', -1, 1, 'attack', 'AttackFormation' },  --XPack Light Gunship
+            { 'uea0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
+            { 'uea0102', -1, 1, 'Attack', 'AttackFormation' },  --Interceptor
+            { 'xra0105', -1, 1, 'Attack', 'AttackFormation' },  --XPack Light Gunship
         },
 
     -- T2
         ['OST_AirAttacks_T2CybranPlatoon1'] = {
             'OST_AirAttacks_T2CybranPlatoon1', '',
-            { 'ura0203', -1, 1, 'attack', 'AttackFormation' },  --Gunship
-            { 'dra0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'ura0203', -1, 1, 'Attack', 'AttackFormation' },  --Gunship
+            { 'dra0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
         },
         ['OST_AirAttacks_T2CybranPlatoon2'] = {
             'OST_AirAttacks_T2CybranPlatoon2', '',
-            { 'dra0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
-            { 'ura0103', -1, 1, 'attack', 'AttackFormation' },  --Bomber
+            { 'dra0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'ura0103', -1, 1, 'Attack', 'AttackFormation' },  --Bomber
         },
         ['OST_AirAttacks_T2CybranPlatoon3'] = {
             'OST_AirAttacks_T2CybranPlatoon3', '',
-            { 'dra0202', -1, 1, 'attack', 'AttackFormation' },  --XPack Combat Fighter
+            { 'dra0202', -1, 1, 'Attack', 'AttackFormation' },  --XPack Combat Fighter
         },
 
     },
@@ -609,8 +609,8 @@ Scenario = {
                         BuildConditions = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
-							[3] = {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
-                            --[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
+							{'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
+                            --[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -633,7 +633,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -742,10 +742,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             --[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
-                            [3] = {'/lua/editor/miscbuildconditions.lua', 'FactionIndex',
-                                {'default_brain', 1, 2, 3 },
-                                {'default_brain','1', '2', '3'}
-                            },
+                            {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 3 } },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -771,7 +768,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 3} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -793,7 +790,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 3} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -815,7 +812,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} }, 
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 3} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -837,7 +834,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1, 2, 3} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain', 'default_builder_name', 1 } },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -863,7 +860,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 4} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -885,7 +882,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 4} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -907,7 +904,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 4} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -933,7 +930,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -955,7 +952,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -977,7 +974,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 1} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1003,7 +1000,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 2} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1025,7 +1022,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 2} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1047,7 +1044,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 2} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1069,7 +1066,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 2} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1094,7 +1091,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 2} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1116,7 +1113,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 2} },
-							--[[[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
+							--[[{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },]]
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1229,7 +1226,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3} },
-							--[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },
+							--{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1251,7 +1248,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3} },
-							--[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },
+							--{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
@@ -1273,7 +1270,7 @@ Scenario = {
                             {'/lua/ai/opai/airattacks_editorfunctions.lua', 'AirAttackChildCountDifficulty', {'default_brain', 'default_master'} },
                             {'/lua/editor/amplatoonhelperfunctions.lua', 'AMCheckPlatoonLock', {'default_brain', 'default_master'} },
                             {'/lua/editor/miscbuildconditions.lua', 'FactionIndex', {'default_brain', 3} },
-							--[3] = {'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },
+							--{'/lua/editor/platooncountbuildconditions.lua', 'NumBuildersLessThanOSCounter', {'default_brain','default_builder_name', 2} },
                         },
                         PlatoonData = {
                             {type = 5, name = 'AMPlatoons', value = {
