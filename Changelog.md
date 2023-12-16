@@ -1,4 +1,8 @@
 Changelog
+#v14 (16.12.2023)
+- Fixed a crash caused by using AI cheats.
+- Potential fix for some transport functionality, like wrong distribution of units, and in some SC1 maps, no rebuilding of transports in rare cases.
+
 #v13 (23.09.2023)
 - Reverted the OpAI overhaul, it causes too many issues with existing missions, instead a new individual file might be used for new custom/reworked missions.
 - Misc. changes, and fixes.

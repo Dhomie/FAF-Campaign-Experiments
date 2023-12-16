@@ -76,24 +76,33 @@ end
 ---@param tCount number[] default_transport_count
 ---@param locationName string default_location_type
 ---@return boolean
-function LandAssaultTransport(aiBrain, tCount, locationName)
-	local poolName = 'TransportPool'
+function LandAssaultTransport(aiBrain, tCount)
+	-- Get the the universal 'TransportPool' platoon, if we can't get it, return true, we need transports
+    local transportPool = aiBrain:GetPlatoonUniquelyNamed('TransportPool')
+	if not transportPool then
+		return true
+	end
+
+	-- Default to 4 if tCount isn't provided, or valid
 	local difficulty = ScenarioInfo.Options.Difficulty or 3
-	
-	-- 4/8/12 transports depending on the difficulty should be enough
-	local count = 4 * difficulty
-	
-	if not locationName then
-		error('*AI ERROR: LandAssaultTransport requires locationName parameter.', 2)
+	local count = tCount
+	if not count or type(count) ~= 'number' then
+		count = 4
 	end
 	
-	local poolName = locationName .. '_TransportPool'
+	-- Multiply total transport count according to difficulty, since we multiply the land platoon's size as well
+	local num = count * difficulty
 	
-	-- Get either the specific transport platoon, or the universal 'TransportPool' platoon
-    local transportPool = aiBrain:GetPlatoonUniquelyNamed(poolName) or aiBrain:GetPlatoonUniquelyNamed('TransportPool')
+	-- The engine version of GetPlatoonUnits() can return with the dead/destroyed units, we gotta check if the units are actually alive
+	local counter = 0
+	local units = transportPool:GetPlatoonUnits()
+	for index, unit in units do
+		if not unit:BeenDestroyed() then
+			counter = counter + 1
+		end
+	end
 	
-	-- Reverse logic, we want to return true if the platoon doesn't exist.
-    return not (transportPool and table.getn(transportPool:GetPlatoonUnits()) > count) 
+	return counter < num
 end
 
 --- Assigns TransportMoveLocation platoon data if none is given for the Master platoon via some very scripted naming methods from the map's 'save.lua'

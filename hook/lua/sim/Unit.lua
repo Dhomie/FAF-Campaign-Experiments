@@ -8,7 +8,7 @@ Unit = Class(CampaignUnit) {
 		CampaignUnit.OnCreate(self)
 		
 		if self.Brain.CampaignCheatEnabled then
-			AIUtils.ApplyCampaignCheatBuffs(self)
+			import("/lua/ai/aiutilities.lua").ApplyCampaignCheatBuffs(self)
 		end
 	end,
 }

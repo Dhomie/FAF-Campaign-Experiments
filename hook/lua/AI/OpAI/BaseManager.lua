@@ -9,7 +9,6 @@
 --- 	- More reliable structure upgrade checks
 ---		- Most structures now upgrade from their lowest available tech variants
 ---		- Rebuilds are infinite for all difficulties
----		- TMLs and SMLs only receive 1 ammo after spawning
 ---		- Fixed ACUs and sACUs removing prerequisite enhancements
 ---		- Added default transport platoons, along with the corresponding BaseManager functionality, courtesy of 4z0t for the idea
 ---		- TMLs and SMLs are now used if they are inside the radius of a base that has their functionalities enabled
@@ -160,7 +159,8 @@ BaseManager = Class(BaseManagerTemplate) {
 		
 		-- If we were set to upgrade, and we're busy building something, return
 		-- A factory is practically idle when it's assisting another factory, and not building anything, in that case the unit is in the 'Guarding' state, and not the 'Idle' state
-		if unit.SetToUpgrade and ((unit:IsUnitState('Upgrading') or unit:IsUnitState('Building')) or (unit:IsUnitState('Guarding') and unit:IsUnitState('Building')) or unit:IsUnitState('AssistingCommander')) then
+		--if unit.SetToUpgrade and ((unit:IsUnitState('Upgrading') or unit:IsUnitState('Building')) or (unit:IsUnitState('Guarding') and unit:IsUnitState('Building')) or unit:IsUnitState('AssistingCommander')) then
+		if unit.SetToUpgrade and (unit:IsUnitState('Upgrading') or unit:IsUnitState('Building') or unit:IsUnitState('AssistingCommander')) then
 			return
 		end
 		
