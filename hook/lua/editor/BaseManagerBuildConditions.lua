@@ -12,7 +12,8 @@ local AIUtils = import("/lua/ai/aiutilities.lua")
 ---@param baseName string
 ---@return boolean
 function BaseManagerNeedsEngineers(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].EngineerQuantity > aiBrain.BaseManagers[baseName].CurrentEngineerCount
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.EngineerQuantity > bManager.CurrentEngineerCount
 end
 
 ---@param aiBrain ArmiesTable
@@ -102,101 +103,125 @@ end
 ---@param tech integer
 ---@return boolean
 function TransportsTechAllowed(aiBrain, baseName, tech)
-    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].TransportsTech == tech
+	local bManager = aiBrain.BaseManagers[baseName]
+    return bManager and bManager.TransportsTech == tech
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function NeedTransports(aiBrain, baseName)
-    if not aiBrain.BaseManagers[baseName] then
+	local bManager = aiBrain.BaseManagers[baseName]
+    if not bManager then
 		return false
 	end
-
-    local transportPool = aiBrain:GetPlatoonUniquelyNamed(baseName .. "_TransportPool")
-    if not transportPool then
-		return true 
+	
+	-- Get either the specific transport platoon, or the universal 'TransportPool' platoon
+    local platoon = aiBrain:GetPlatoonUniquelyNamed(baseName .. "_TransportPool")
+	-- If neither exists, we need to build transports, return true
+	if not platoon then
+		return true
 	end
 	
-    return aiBrain.BaseManagers[baseName].TransportsNeeded >= table.getn(transportPool:GetPlatoonUnits())
+	-- The engine version of GetPlatoonUnits() can return with the dead/destroyed units, we gotta check if the units are actually alive
+	local counter = 0
+	local units = platoon:GetPlatoonUnits()
+	for index, unit in units do
+		if not unit:BeenDestroyed() then
+			counter = counter + 1
+		end
+	end
+
+	return counter < bManager.TransportsNeeded
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function BaseActive(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].Active
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.Active
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function BaseReclaimEnabled(aiBrain, baseName)
-    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.EngineerReclaiming
+	local bManager = aiBrain.BaseManagers[baseName]
+    return bManager and bManager.FunctionalityStates.EngineerReclaiming
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function BasePatrollingEnabled(aiBrain, baseName)
-    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Patrolling
+	local bManager = aiBrain.BaseManagers[baseName]
+    return bManager and bManager.FunctionalityStates.Patrolling
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function BaseBuildingEngineers(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.BuildEngineers
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates.BuildEngineers
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function BaseEngineersEnabled(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Engineers
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates.Engineers
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function LandScoutingEnabled(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.LandScouting
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates.LandScouting
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function AirScoutingEnabled(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.AirScouting
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates.AirScouting
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function ExpansionBasesEnabled(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.ExpansionBases
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates.ExpansionBases
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function TMLsEnabled(aiBrain, baseName)
-    return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.TMLs
+	local bManager = aiBrain.BaseManagers[baseName]
+    return bManager and bManager.FunctionalityStates.TMLs
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function NukesEnabled(aiBrain, baseName)
+	local bManager = aiBrain.BaseManagers[baseName]
 	-- Nuke Lobby Option: 1 -> Disabled; 2 -> Enabled
-	return (aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Nukes) or (ScenarioInfo.Options.CampaignAINukes and ScenarioInfo.Options.CampaignAINukes == 2)
+	return (bManager and bManager.FunctionalityStates.Nukes) or (ScenarioInfo.Options.CampaignAINukes and ScenarioInfo.Options.CampaignAINukes == 2)
 end
 
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
 function TransportsEnabled(aiBrain, baseName)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates.Transports
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates.Transports
 end
 
 --- Checks if the specified functionality is enabled for a BaseManager instance
@@ -206,7 +231,8 @@ end
 ---@param functionality string
 ---@return boolean
 function BaseManagerFunctionalityEnabled(aiBrain, baseName, functionality)
-	return aiBrain.BaseManagers[baseName] and aiBrain.BaseManagers[baseName].FunctionalityStates[functionality]
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.FunctionalityStates[functionality]
 end
 
 --- Moved Unused Imports for mod compatibility

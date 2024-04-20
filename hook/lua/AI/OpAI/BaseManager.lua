@@ -11,31 +11,12 @@
 ---		- Rebuilds are infinite for all difficulties
 ---		- Fixed ACUs and sACUs removing prerequisite enhancements
 ---		- Added default transport platoons, along with the corresponding BaseManager functionality, courtesy of 4z0t for the idea
----		- TMLs and SMLs are now used if they are inside the radius of a base that has their functionalities enabled
 
 local BaseManagerTemplate = BaseManager
 local Factions = import('/lua/factions.lua').Factions
 
--- Default rebuild numbers for buildings based on type; -1 is infinite
-local BuildingCounterDefaultValues = {
-    -- Difficulty 1
-    {
-        Default = -1,
-    },
-
-    -- Difficulty 2
-    {
-        Default = -1,
-    },
-
-    -- Difficulty 3
-    {
-        Default = -1,
-    },
-}
-
 --- Callback function when a structure marked for needing an upgrade starts building something
---- If that 'something' is and upgrade itself, create a callback for the upgrade
+--- If that 'something' is the upgrade itself, create a callback for the upgrade
 ---@param@ unit Unit
 ---@param unitBeingBuilt Unit being constructed
 function StructureOnStartBuild(unit, unitBeingBuilt)
@@ -43,7 +24,7 @@ function StructureOnStartBuild(unit, unitBeingBuilt)
 	-- We don't use different upgrades paths for coop, only that of the original SCFA (no Support Factory upgrade paths whatsoever)
 	-- If you decide to mess around with AI armies in cheat mode, and order a newly added upgrade path instead anyway, then any mishaps happening afterwards is on you!
 	if unit:IsUnitState('Upgrading') then
-		--LOG('Structure building upgrade named: ' .. repr(unit.UnitName))
+		--LOG('Structure building upgrade named: ' .. tostring(unit.UnitName))
 		unitBeingBuilt.BuildingUpgrade = true
 		unitBeingBuilt.UnitName = unit.UnitName
 
@@ -59,7 +40,7 @@ end
 --- Updates the ScenarioInfo.UnitNames table with the new unit
 ---@param unit Unit
 function UpgradeOnStopBeingBuilt(unit)
-	--LOG('Structure finished upgrade named: ' .. repr(unit.UnitName))
+	--LOG('Structure finished upgrade named: ' .. tostring(unit.UnitName))
 	ScenarioInfo.UnitNames[unit.Army][unit.UnitName] = unit
 end
 
@@ -123,9 +104,7 @@ BaseManager = Class(BaseManagerTemplate) {
     end,
 
     BuildingCounterDifficultyDefault = function(self, buildingType)
-        local diff = ScenarioInfo.Options.Difficulty or 1
-
-        return BuildingCounterDefaultValues[diff].Default
+        return -1
     end,
 	
 	---@param self BaseManager
@@ -167,7 +146,7 @@ BaseManager = Class(BaseManagerTemplate) {
 		-- Safety check in case unit namings got messed up.
 		-- We rely on the cached name on the unit itself to determine what unit exists or needs to exist from the map's save.lua file
 		if not unit.UnitName or unit.UnitName ~= unitName then
-			WARN('Overwriting either non-existant, or mismatching unit name for structure named: ' .. repr(UnitName))
+			WARN('Overwriting either non-existant, or mismatching unit name for structure named: ' .. tostring(UnitName))
 			unit.UnitName = unitName
 		end
 		
@@ -186,7 +165,7 @@ BaseManager = Class(BaseManagerTemplate) {
 			-- Set the unit as upgrading, in case we got units to build before the upgrade command
 			unit.SetToUpgrade = true
         else
-			WARN('Structure upgrade thread for ' .. repr(unitName) .. ' aborted, couldn\'t find a valid upgrade ID!')
+			WARN('Structure upgrade thread for ' .. tostring(unitName) .. ' aborted, couldn\'t find a valid upgrade ID!')
 			return
 		end
 		
