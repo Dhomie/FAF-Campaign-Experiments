@@ -520,42 +520,6 @@ function DoConditionalBuild(singleEngineerPlatoon)
         WaitTicks(10)
     end
 	
-    --[[local unitInstance = false
-    while aiBrain:PlatoonExists(singleEngineerPlatoon) do
-        if not unitInstance then
-            unitInstance = engineer.UnitBeingBuilt
-            if unitInstance then
-                -- Store the unit
-                bManager.ConditionalBuildData.Unit = unitInstance
-
-                -- If were supposed to keep a certain number of these guys in the field, store the info on him so he can reinsert
-                -- himself in the conditional build table when he bites it.
-                if selectedBuild.data.KeepAlive then
-                    unitInstance.KeepAlive = true
-                    unitInstance.ConditionalBuild = selectedBuild
-                    unitInstance.ConditionalBuildData = bManager.ConditionalBuildData
-
-                    -- register rebuild callback
-                    TriggerFile.CreateUnitDestroyedTrigger(ConditionalBuildDied, unitInstance)
-                end
-
-                -- Tell the unit the name of this base manager
-                unitInstance.BaseName = baseName
-
-                -- Set variables so other engineers can see whats going on
-                bManager.ConditionalBuildData.IsInitiated = false
-                bManager.ConditionalBuildData.IsBuilding = true
-
-                -- Register callbacks
-                TriggerFile.CreateUnitStopBeingBuiltTrigger(ConditionalBuildSuccessful, unitInstance)
-            end
-        end
-        if engineer:IsIdleState() then
-            break
-        end
-        WaitTicks(10)
-    end]]
-	
     IssueToUnitClearCommands(engineer)
     TriggerFile.RemoveUnitTrigger(engineer, ConditionalBuilderDead)
 end
