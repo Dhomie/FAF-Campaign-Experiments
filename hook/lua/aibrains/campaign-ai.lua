@@ -1,12 +1,7 @@
 do
 
-local AIUtils = import("/lua/ai/aiutilities.lua")
-local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
-local Behaviors = import("/lua/ai/aibehaviors.lua")
-local AIBuildUnits = import("/lua/ai/aibuildunits.lua")
-
 -- upvalue scope for performance
-local TableGetn = table.getn
+local TableInsert = table.insert
 
 local CampaignAIBrain = AIBrain
 
@@ -24,7 +19,7 @@ AIBrain = Class(CampaignAIBrain) {
 		
 		-- 1 -> Disabled; 2 -> Enabled
 		if ScenarioInfo.Options.CampaignAICheat and ScenarioInfo.Options.CampaignAICheat == 2 then
-			LOG('Campaign AI cheats have been enabled, setting up cheat modifiers for use')
+			LOG('Campaign AI cheats have been enabled, setting up cheat modifiers for use.')
 			AIUtils.SetupCampaignCheat(self, true)
 		end
 	end,
@@ -155,7 +150,7 @@ AIBrain = Class(CampaignAIBrain) {
                                         if factories and self:PBMCheckBuildConditions(globalBuilder.BuildConditions, armyIndex) then
                                             priorityLevel = vp.Priority
                                             for i = 1, self:PBMNumHandlesAvailable(vp) do
-                                                table.insert(possibleTemplates, {Builder = vp, Index = kp, Global = globalBuilder})
+                                                TableInsert(possibleTemplates, {Builder = vp, Index = kp, Global = globalBuilder})
                                             end
                                         end
                                     end
@@ -248,7 +243,7 @@ AIBrain = Class(CampaignAIBrain) {
                 local squadNum = 3
                 while squadNum <= TableGetn(template) do
                     if template[squadNum][2] < 0 then
-                        table.insert(flipTable, {Squad = squadNum, Value = template[squadNum][2]})
+                        TableInsert(flipTable, {Squad = squadNum, Value = template[squadNum][2]})
                         template[squadNum][2] = 1
                     end
                     squadNum = squadNum + 1

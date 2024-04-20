@@ -399,7 +399,7 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultTransportThread', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultTransport', {'default_brain', 'default_transport_count', 'default_location_type'} },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultTransport', {'default_brain', 'default_transport_count'} },
                         },
                         PlatoonData = {
                         },
@@ -477,7 +477,7 @@ Scenario = {
                         RequiresConstruction = true,
                         PlatoonAIFunction = {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultTransportThread', {'default_platoon'} },
                         BuildConditions = {
-                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultTransport', {'default_brain','default_transport_count', 'default_location_type'} },
+                            {'/lua/ai/opai/landassault_editorfunctions.lua', 'LandAssaultTransport', {'default_brain', 'default_transport_count'} },
                         },
                         PlatoonData = {
                         },

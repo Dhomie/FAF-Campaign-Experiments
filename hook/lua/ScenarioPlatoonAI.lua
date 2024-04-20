@@ -10,6 +10,9 @@ local ScenarioFramework = import("/lua/scenarioframework.lua")
 local StructureTemplates = import("/lua/buildingtemplates.lua")
 local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
 
+-- Upvalued for performance, might be a good idea to do this for other engine functions
+local EntityCategoryContains = EntityCategoryContains
+
 --- Transfers the platoon's units to the 'TransportPool' platoon, or the specified one if BaseName platoon data is given
 --- Other platoons then can use the transport platoon to get to specified locations
 --- NOTE: Transports are assigned to the land platoon we want to transport, once their commands have been executed, they are reassigned to their original transport pool
@@ -193,6 +196,7 @@ end
 function SortUnitsOnTransports(transportTable, unitTable, numSlots)
     local leftoverUnits = {}
     numSlots = numSlots or -1
+	
     for num, unit in unitTable do
         if numSlots == -1 or num <= numSlots then
             local transSlotNum = 0
@@ -429,6 +433,111 @@ function GetNumTransports(platoon)
     end
 
     return transportNeeded
+end
+
+--- Deprecated utility Function
+--- Returns the number of slots the transport has available, or at least tries that, with a considerable inconsistency if either the bone counts, and/or the unit's blueprint is fucked up
+--- For the sake of an example, it returns with less available slots for the T2 UEF Transport than it actually has
+---@param unit Unit
+---@return table
+--[[function GetNumTransportSlots(unit)
+    local bones = {
+        Large = 0,
+        Medium = 0,
+        Small = 0,
+    }
+
+    -- compute count based on bones
+    for i = 1, unit:GetBoneCount() do
+        if unit:GetBoneName(i) ~= nil then
+            if string.find(unit:GetBoneName(i), 'Attachpoint_Lrg') then
+                bones.Large = bones.Large + 1
+            elseif string.find(unit:GetBoneName(i), 'Attachpoint_Med') then
+                bones.Medium = bones.Medium + 1
+            elseif string.find(unit:GetBoneName(i), 'Attachpoint') then
+                bones.Small = bones.Small + 1
+            end
+        end
+    end
+
+    -- retrieve number of slots set by blueprint, if it is set
+    local largeSlotsByBlueprint = unit.Blueprint.Transport.SlotsLarge or bones.Large 
+    local mediumSlotsByBlueprint = unit.Blueprint.Transport.SlotsMedium or bones.Medium 
+    local smallSlotsByBlueprint = unit.Blueprint.Transport.SlotsSmall or bones.Small 
+
+    -- take the minimum of the two
+    bones.Large = math.min(bones.Large, largeSlotsByBlueprint)
+    bones.Medium = math.min(bones.Medium, mediumSlotsByBlueprint)
+    bones.Small = math.min(bones.Small, smallSlotsByBlueprint)
+
+    return bones
+end]]
+
+--- Utility Function
+--- Returns the number of slots the transport has available
+---@param unit Unit
+---@return table
+function GetNumTransportSlots(unit)
+    local bones = {
+        Large = 0,
+        Medium = 0,
+        Small = 0,
+    }
+	
+	-- I'm not a fan of having to hardcode these values, but the blueprint, and even engine method are unreliable
+	-- The old function can be found above for reference
+	if EntityCategoryContains(categories.xea0306, unit) then
+		bones.Large = 8
+		bones.Medium = 10
+		bones.Small = 24
+	elseif EntityCategoryContains(categories.uea0203, unit) then
+		bones.Large = 0
+		bones.Medium = 1
+		bones.Small = 1
+	elseif EntityCategoryContains(categories.uea0104, unit) then
+		bones.Large = 3
+		bones.Medium = 6
+		bones.Small = 14
+	elseif EntityCategoryContains(categories.uea0107, unit) then
+		bones.Large = 1
+		bones.Medium = 2
+		bones.Small = 6
+	elseif EntityCategoryContains(categories.uaa0107, unit) then
+		bones.Large = 1
+		bones.Medium = 3
+		bones.Small = 6
+	elseif EntityCategoryContains(categories.uaa0104, unit) then
+		bones.Large = 3
+		bones.Medium = 6
+		bones.Small = 12
+	elseif EntityCategoryContains(categories.ura0107, unit) then
+		bones.Large = 1
+		bones.Medium = 2
+		bones.Small = 6
+	elseif EntityCategoryContains(categories.ura0104, unit) then
+		bones.Large = 2
+		bones.Medium = 4
+		bones.Small = 10
+	elseif EntityCategoryContains(categories.xsa0107, unit) then
+		bones.Large = 1
+		bones.Medium = 4
+		bones.Small = 8
+	elseif EntityCategoryContains(categories.xsa0104, unit) then
+		bones.Large = 4
+		bones.Medium = 8
+		bones.Small = 16
+	else
+		-- If all else fails, try to get the slots from the unit's blueprint
+		local largeSlotsByBlueprint = unit.Blueprint.Transport.SlotsLarge
+		local mediumSlotsByBlueprint = unit.Blueprint.Transport.SlotsMedium
+		local smallSlotsByBlueprint = unit.Blueprint.Transport.SlotsSmall
+		
+		bones.Large = largeSlotsByBlueprint
+		bones.Medium = mediumSlotsByBlueprint
+		bones.Small = smallSlotsByBlueprint
+	end
+
+    return bones
 end
 
 --- Utility Function
