@@ -30,6 +30,17 @@ function ApplyCampaignCheatBuffs(unit)
     Buff.ApplyBuff(unit, 'CheatIncome')
     Buff.ApplyBuff(unit, 'CheatBuildRate')
 	
+	-- "Update" the multipliers every time a unit is created
+	-- Certain maps use map script to change the multipliers during the middle of the mission, so we gotta change them back
+	local buffDef = Buffs['CheatBuildRate']
+	local buffAffects = buffDef.Affects
+    buffAffects.BuildRate.Mult = tonumber(ScenarioInfo.Options.CampaignBuildMult)
+
+    buffDef = Buffs['CheatIncome']
+    buffAffects = buffDef.Affects
+    buffAffects.EnergyProduction.Mult = tonumber(ScenarioInfo.Options.CampaignCheatMult)
+    buffAffects.MassProduction.Mult = tonumber(ScenarioInfo.Options.CampaignCheatMult)
+	
 	-- Flag the unit as buffed, to avoid duplicate buff applications on maps that manually buff units via map script
 	unit.EcoBuffed = true
 	unit.BuildBuffed = true

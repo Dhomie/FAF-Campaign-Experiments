@@ -225,7 +225,7 @@ AttackManager = ClassSimple {
 	---@param self AttackManager
     SortPlatoonsViaPriority = function(self)
         local sortedList = {}
-        --Simple selection sort, this can be made faster later if we decide we need it.
+        -- Simple selection sort, this can be made faster later if we decide we need it.
         if self.Platoons then
             for i = 1, table.getn(self.Platoons) do
                 local highest = 0
@@ -255,7 +255,7 @@ AttackManager = ClassSimple {
             self:SortPlatoonsViaPriority()
         end
 		
-		--Loop through all of the AM platoons
+		-- Loop through all of the AM platoons
         for k,v in self.Platoons do
             if self:CheckAttackConditions(v) then
                 local combineList = {}
@@ -299,16 +299,16 @@ AttackManager = ClassSimple {
 					-- I've added additional categories to be filtered out, we don't want land platoons to grab unassigned transports or such in case we ever decide to make use of the ArmyPool
                     if v.UsePool then
                         local checkCategory
-						--Only T1-T3 aerial combat units
+						-- Only T1-T3 aerial combat units
                         if v.PlatoonType == 'Air' then
                             checkCategory = categories.AIR * categories.MOBILE - categories.TRANSPORTATION - categories.EXPERIMENTAL - categories.SCOUT
-						--Only T1-T3 surface combat units
+						-- Only T1-T3 surface combat units
                         elseif v.PlatoonType == 'Land' then
                             checkCategory = categories.LAND * categories.MOBILE - categories.ENGINEER - categories.EXPERIMENTAL - categories.SCOUT
-						--Only T1-T3 naval combat units
+						-- Only T1-T3 naval combat units
                         elseif v.PlatoonType == 'Sea' then
                             checkCategory = categories.NAVAL * categories.MOBILE - categories.EXPERIMENTAL
-						--Only T1-T3 combined-arms combat units
+						-- Only T1-T3 combined-arms combat units
                         elseif v.PlatoonType == 'Any' then
                             checkCategory = categories.MOBILE - categories.ENGINEER - categories.TRANSPORTATION - categories.EXPERIMENTAL - categories.SCOUT
                         else
@@ -357,25 +357,25 @@ AttackManager = ClassSimple {
                     end
 					-- Set the platoon's name
                     tempPlatoon.PlatoonData.PlatoonName = v.PlatoonName
-					--LOG('*AI DEBUG: ARMY ' .. repr(self.brain:GetArmyIndex()) .. ': AM Master Platoon formed - ' .. repr(v.BuilderName))
+					--LOG('*AI DEBUG: ARMY ' .. tostring(self.brain:GetArmyIndex()) .. ': AM Master Platoon formed - ' .. tostring(v.BuilderName))
 					
 					-- Cache the origin base into the platoon
 					if v.LocationType then
 						tempPlatoon.LocationType = v.LocationType
-						--LOG('*AI DEBUG: ARMY ' .. repr(self.brain:GetArmyIndex()) .. ': AM Master Platoon originates from base: ' .. repr(tempPlatoon.LocationType))
+						--LOG('*AI DEBUG: ARMY ' .. tostring(self.brain:GetArmyIndex()) .. ': AM Master Platoon originates from base: ' .. tostring(tempPlatoon.LocationType))
 					end
 					
 					-- Set the platoon AI function
                     if v.AIThread then
                         tempPlatoon:ForkAIThread(import(v.AIThread[1])[v.AIThread[2]])
-                        --LOG('*AM DEBUG: AM Master Platoon using AI Thread: ', repr(v.AIThread[2]), ' Builder named: ', repr(v.BuilderName))
+                        --LOG('*AM DEBUG: AM Master Platoon using AI Thread: ', tostring(v.AIThread[2]), ' Builder named: ', tostring(v.BuilderName))
 					end
 					
 					-- Add callbacks when the platoon is destroyed
                     if v.DestroyCallbacks then
                         for dcbNum, destroyCallback in v.DestroyCallbacks do
                             tempPlatoon:AddDestroyCallback(import(destroyCallback[1])[destroyCallback[2]])
-                            --LOG('*AM DEBUG: AM Master Platoon adding destroy callback: ', destroyCallback[2], ' Builder named: ', repr(v.BuilderName))
+                            --LOG('*AM DEBUG: AM Master Platoon adding destroy callback: ', tostring(destroyCallback[2]), ' Builder named: ', tostring(v.BuilderName))
                         end
                     end
 					
@@ -387,7 +387,7 @@ AttackManager = ClassSimple {
                             else
                                 self.Trash:Add(ForkThread(import(callback[1])[callback[2]], tempPlatoon))
                             end
-                            --LOG('*AM DEBUG: AM Master Platoon Form callback: ', repr(callback[2]), ' Builder Named: ', repr(v.BuilderName))
+                            --LOG('*AM DEBUG: AM Master Platoon Form callback: ', tostring(callback[2]), ' Builder Named: ', tostring(v.BuilderName))
                         end
                     end
                 end
@@ -437,11 +437,12 @@ AttackManager = ClassSimple {
                 result = result + 1
             end
         end
-        --Add in pool platoon, pool platoon is always used.
+        -- Add in pool platoon, pool platoon is always used.
         result = result + 1
         return result
     end,
 	
+	--- SC1's use of attack vector data, mostly on the engine side, so I can't comment on it
 	---@param self AttackManager
     AttackManageAttackVectors = function(self)
         local enemyBrain = self.brain:GetCurrentEnemy()
@@ -450,7 +451,7 @@ AttackManager = ClassSimple {
         end
     end,
 	
-    -- XXX: refactor this later, artifact from moving AttackManager from aibrain
+    --- XXX: refactor this later, artifact from moving AttackManager from aibrain
 	---@param brain AIBrain
 	---@param platoon Platoon
     DecrementCount = function(brain, platoon)

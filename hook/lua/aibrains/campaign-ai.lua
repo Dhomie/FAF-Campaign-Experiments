@@ -40,13 +40,13 @@ AIBrain = Class(CampaignAIBrain) {
                     Gate = {},
                 },
                 Locations = {
-                    -- {
-                    --  Location,
-                    --  Radius,
-                    --  LocType, ('MAIN', 'EXPANSION')
-                    --  PrimaryFactories = {Air = X, Land = Y, Sea = Z}
-                    --  UseCenterPoint, - Bool
-                    --}
+					--[[{
+						Location,
+						Radius,
+						LocType, ('MAIN', 'EXPANSION')
+						PrimaryFactories = {Air = X, Land = Y, Sea = Z}
+						UseCenterPoint, - Bool
+                    }]]
                 },
                 PlatoonTypes = {'Air', 'Land', 'Sea', 'Gate'},
                 NeedSort = {
@@ -71,12 +71,12 @@ AIBrain = Class(CampaignAIBrain) {
             self:PBMSetEnabled(true)
 			
 			-- Create the global builder table where most of the builder data will be stored, I have no idea why this wasn't initalized here to begin with
-			-- It was initalized in self:PBMAddPlatoon() for whatever reason
+			-- GPG initalized in self:PBMAddPlatoon() for whatever reason
 			ScenarioInfo.BuilderTable[self.CurrentPlan] = {Air = {}, Sea = {}, Land = {}, Gate = {}}
         end
     end,
 	
-	-- Main building and forming platoon thread for the Platoon Build Manager
+	--- Main building and forming platoon thread for the Platoon Build Manager
     ---@param self CampaignAIBrain
     PlatoonBuildManagerThread = function(self)
         local personality = self:GetPersonality()
@@ -229,15 +229,15 @@ AIBrain = Class(CampaignAIBrain) {
             -- The platoon is required to be in the building state and it is
             -- or The platoon doesn't have a handle and either doesn't require to be building state or doesn't require construction
             -- all that and passes it's build condition function.
-            if vp.Priority > 0 and (requireBuilding and self:PBMCheckHandleBuilding(vp) and numBuildOrders and numBuildOrders == 0 and (not vp.LocationType or vp.LocationType == location.LocationType))
-                    or (((self:PBMHandleAvailable(vp)) and (not requireBuilding or not globalBuilder.RequiresConstruction)) and (not vp.LocationType or vp.LocationType == location.LocationType)
-                    and self:PBMCheckBuildConditions(globalBuilder.BuildConditions, armyIndex)) then
+            if vp.Priority > 0 and (requireBuilding and self:PBMCheckHandleBuilding(vp)
+					and numBuildOrders and numBuildOrders == 0
+					and (not vp.LocationType or vp.LocationType == location.LocationType))
+                    or (((self:PBMHandleAvailable(vp)) and (not requireBuilding or not globalBuilder.RequiresConstruction))
+					and (not vp.LocationType or vp.LocationType == location.LocationType)
+					and self:PBMCheckBuildConditions(globalBuilder.BuildConditions, armyIndex)) then
                 local poolPlatoon = self:GetPlatoonUniquelyNamed('ArmyPool')
                 local formIt = false
-                local template = vp.BuildTemplate
-                if not template then
-                    template = vp.PlatoonTemplate
-                end
+                local template = vp.BuildTemplate or vp.PlatoonTemplate
 
                 local flipTable = {}
                 local squadNum = 3
@@ -324,7 +324,7 @@ AIBrain = Class(CampaignAIBrain) {
 					end
 					
 					-- Set the platoon data
-					-- Also set the platoon to be part of the attack force if specified in the platoon data. used for AttackManager platoon forming
+					-- Also set the platoon to be part of the attack force if specified in the platoon data, used for AttackManager platoon forming
                     if globalBuilder.PlatoonData then
                         hndl:SetPlatoonData(globalBuilder.PlatoonData)
                         if globalBuilder.PlatoonData.AMPlatoons then

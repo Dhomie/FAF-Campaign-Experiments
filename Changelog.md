@@ -1,13 +1,19 @@
 Changelog
-#v14 (16.12.2023)
+# v15 (20.04.2024)
+- Implemented unit build callbacks for OpAI ConditionalBuilds.
+- Further tuning of unit build callback usage for the BaseManager in general.
+- Fixed T2 units being ignored by TMLs.
+- Misc, changes, and fixes.
+
+# v14 (16.12.2023)
 - Fixed a crash caused by using AI cheats.
 - Potential fix for some transport functionality, like wrong distribution of units, and in some SC1 maps, no rebuilding of transports in rare cases.
 
-#v13 (23.09.2023)
+# v13 (23.09.2023)
 - Reverted the OpAI overhaul, it causes too many issues with existing missions, instead a new individual file might be used for new custom/reworked missions.
 - Misc. changes, and fixes.
 
-#v12 (03.09.2023)
+# v12 (03.09.2023)
 - Added a **testing** version for the OpAI overhaul, see BaseOpAI.lua
 
 # v11 (30.08.2023)
