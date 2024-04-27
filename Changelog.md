@@ -1,4 +1,9 @@
 Changelog
+#v16 (27.04.2024)
+- Further implementation of build callbacks for structure upgrades, now triggered by Engineers when they start building.
+- Changed the original BM upgrade thread into a fallback thread incase the above fails somehow.
+- Further fixes, misc. adjustments.
+
 # v15 (20.04.2024)
 - Implemented unit build callbacks for OpAI ConditionalBuilds.
 - Further tuning of unit build callback usage for the BaseManager in general.

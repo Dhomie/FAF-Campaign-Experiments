@@ -15,6 +15,7 @@ local TriggerFile = import("/lua/scenariotriggers.lua")
 local Buff = import("/lua/sim/buff.lua")
 local BMBC = import("/lua/editor/basemanagerbuildconditions.lua")
 local MIBC = import("/lua/editor/miscbuildconditions.lua")
+local UpgradeTemplates = import("/lua/upgradetemplates.lua")
 
 local EngineerBuildDelay = tonumber(ScenarioInfo.Options.EngineerBuildDelay) or 15
 
@@ -23,6 +24,7 @@ local TableEmpty = table.empty
 local TableInsert = table.insert
 local TableRemove = table.remove
 local TableGetn = table.getn
+local TableRandom = table.random
 
 --- Split the platoon into single unit platoons
 ---@param platoon Platoon
@@ -74,7 +76,8 @@ end
 --- If that 'something' is a named unit the Engineer was told to build, then it caches the necessary data on the named unit
 --- Also resets the unit name we cached on the Engineer, so if any mishaps happen, the Engineer can just build something else afterwards
 --- We handle cases of BuildingUnitName and ConditionalUnitName, the former is for Base Manager structures, the later is for Conditional Builds (ie. experimentals)
---- Additionally handles cases where a guarding Engineer initiates the construction INSTEAD of our primary Engineer
+--- Handles special case where a guarding Engineer initiates the construction INSTEAD of our primary Engineer
+--- Also handles BM upgrades for instant structure upgrading, this is to avoid issues with PBM factory assigning
 ---@param unit Unit
 ---@param unitBeingBuilt Unit
 function EngineerOnStartBuild(unit, unitBeingBuilt)
@@ -82,7 +85,6 @@ function EngineerOnStartBuild(unit, unitBeingBuilt)
 	-- We don't queue several build related orders in the campaign enviroment, so if the Engineer that initialized construction is currently guarding another, it's the ONLY order it has right now
 	-- If we are guarding something, overwrite the origin unit to that, we don't copy over any data, simply treat this Engineer as the primary one, and reset data on the actual primary Engineer
 	local Guardee = unit:GetGuardedUnit()
-	
 	if Guardee and not Guardee.Dead then
 		unit = Guardee
 	end
@@ -92,13 +94,11 @@ function EngineerOnStartBuild(unit, unitBeingBuilt)
 	local ExperimentalUnitName = unit.ConditionalBuildUnitName
 	local BaseName = unit.BaseName
 	local bManager = unit.Brain.BaseManagers[BaseName]
-	local Guardee = unit:GetGuardedUnit()
+	local armyIndex = unit.Brain:GetArmyIndex()
 	
 	-- First check if we were told to build a BM structure, if not, check if it's a CB
 	if StructureUnitName and bManager then
-		--LOG('Building started construction named: ' .. tostring(StructureUnitName))
-		
-		-- Assign names to the structure
+		-- Cache names to the structure
 		unitBeingBuilt.UnitName = StructureUnitName
 		unitBeingBuilt.BaseName = BaseName
 		
@@ -106,19 +106,17 @@ function EngineerOnStartBuild(unit, unitBeingBuilt)
 		bManager.UnfinishedBuildings[StructureUnitName] = true
 		
 		-- Update the global UnitNames table so the BM knows the structure exists
-		ScenarioInfo.UnitNames[unit.Army][StructureUnitName] = unitBeingBuilt
+		ScenarioInfo.UnitNames[armyIndex][StructureUnitName] = unitBeingBuilt
 		
 		-- Reset the cached unit name, so a new one can be picked right after
 		unit.BuildingUnitName = nil
 		
 		-- Register callbacks
 		if not unitBeingBuilt.AddedCompletionCallback then
-			TriggerFile.CreateUnitStopBeingBuiltTrigger(StructureBuildSuccessful, unitBeingBuilt)
+			unitBeingBuilt:AddUnitCallback(InitialStructureBuildSuccessful, 'OnStopBeingBuilt')
 			unitBeingBuilt.AddedCompletionCallback = true
 		end
 	elseif ExperimentalUnitName and bManager then
-		--LOG('Conditional Build started construction named: ' .. tostring(ExperimentalUnitName))
-		
 		-- Restore the index saved in the CanConditionalBuild call
 		local buildIndex = bManager.ConditionalBuildData.Index
 		local selectedBuild = bManager.ConditionalBuildTable[buildIndex]
@@ -136,18 +134,20 @@ function EngineerOnStartBuild(unit, unitBeingBuilt)
             TriggerFile.CreateUnitDestroyedTrigger(ConditionalBuildDied, unitBeingBuilt)
         end
 
-        -- Cache the BM's name on the unit
+        -- Cache names to the unit
+		unitBeingBuilt.UnitName = ExperimentalUnitName
         unitBeingBuilt.BaseName = BaseName
 
         -- Set variables so other Engineers can see what's going on
         bManager.ConditionalBuildData.IsInitiated = false
         bManager.ConditionalBuildData.IsBuilding = true
 		
+		-- Reset the cached unit name, so a new one can be picked right after
 		unit.ConditionalBuildUnitName = nil
 		
 		-- Register callbacks
 		if not unitBeingBuilt.AddedCompletionCallback then
-			TriggerFile.CreateUnitStopBeingBuiltTrigger(ConditionalBuildSuccessful, unitBeingBuilt)
+			unitBeingBuilt:AddUnitCallback(ConditionalBuildSuccessful, 'OnStopBeingBuilt')
 			unitBeingBuilt.AddedCompletionCallback = true
 		end
 	end
@@ -157,25 +157,97 @@ end
 --- Resets the unit name we assigned to the Engineer, so in case it's still alive, it can start building something else
 ---@param unit Unit
 function EngineerOnFailedToBuild(unit)
-	if unit.BuildingUnitName then
-		--LOG('Building failed construction named: ' .. tostring(unit.BuildingUnitName))
-		unit.BuildingUnitName = nil
-	elseif unit.ConditionalBuildUnitName then
-		--LOG('Conditional Build failed construction named: ' .. tostring(unit.ConditionalBuildUnitName))
-		unit.ConditionalBuildUnitName = nil
+	unit.ConditionalBuildUnitName = nil
+	unit.BuildingUnitName = nil
+end
+
+--- Callback function when a structure is initially finished building
+--- Marks the unit as finished for the unit's BaseManager, so Engineers won't try to finish it (infinite loop of repair orders on a full health unit), and decrements the amount of times it can be rebuilt
+---@param unit Unit
+function InitialStructureBuildSuccessful(unit)
+	local aiBrain = unit.Brain
+	local bManager = aiBrain.BaseManagers[unit.BaseName]
+	
+	if bManager then
+		local StructureName = unit.UnitName
+		
+		if bManager.UnfinishedBuildings[StructureName] then
+			bManager.UnfinishedBuildings[StructureName] = nil
+			bManager:DecrementUnitBuildCounter(StructureName)
+		end
+		
+		local factionIndex = aiBrain:GetFactionIndex()
+		local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+		-- Check if our structure can even upgrade to begin with
+		if upgradeID then
+			-- Check if the BM is supposed to upgrade this structure
+			for index, structure in bManager.UpgradeTable do
+				-- If the names match, and the IDs don't, we need to upgrade
+				if StructureName == structure.UnitName and unit.UnitId ~= structure.FinalUnit and not unit.SetToUpgrade then
+					UpgradeBaseManagerStructure(unit, upgradeID)
+				end
+			end
+		end
 	end
 end
 
---- Callback function when a (preferably) structure is finished building
---- Marks the unit as finished for the unit's BaseManager, so Engineers won't try to finish it (infinite loop of repair orders on a full health unit), and decrements the amount of times it can be rebuilt
+--- Function that will upgrade factories, radar, etc. to next level
 ---@param unit Unit
-function StructureBuildSuccessful(unit)
-	local bManager = unit.Brain.BaseManagers[unit.BaseName]
-	
-	if bManager.UnfinishedBuildings[unit.UnitName] then
-		--LOG('Building finished construction named: ' .. tostring(unit.UnitName))
-		bManager.UnfinishedBuildings[unit.UnitName] = nil
-		bManager:DecrementUnitBuildCounter(unit.UnitName)
+function UpgradeBaseManagerStructure(unit, upgradeID)
+	-- Add callback when the structure starts building something
+	if not unit.AddedUpgradeCallback then
+		unit:AddOnStartBuildCallback(StructureOnStartBuild)
+		unit.AddedUpgradeCallback = true
+	end
+
+    IssueUpgrade({unit}, upgradeID)
+	unit.SetToUpgrade = true
+end
+
+--- Callback function when a structure marked for needing an upgrade starts building something
+--- If that 'something' is the upgrade itself, create a callback for the upgrade
+---@param unit Unit
+---@param unitBeingBuilt Unit being constructed
+function StructureOnStartBuild(unit, unitBeingBuilt)
+	-- If we are in the upgrading state, then it's the upgrade we want under normal circumstances.
+	-- We don't use different upgrades paths for coop, only that of the original SCFA (no Support Factory upgrade paths whatsoever)
+	-- If you decide to mess around with AI armies in cheat mode, and order a newly added upgrade path instead anyway, then any mishaps happening afterwards is on you!
+	if unit:IsUnitState('Upgrading') then
+		unitBeingBuilt.UnitName = unit.UnitName
+		unitBeingBuilt.BaseName = unit.BaseName
+
+		-- Add callback when the upgrade is finished
+		if not unitBeingBuilt.AddedFinishedCallback then
+			unitBeingBuilt:AddUnitCallback(UpgradeOnStopBeingBuilt, 'OnStopBeingBuilt')
+			unitBeingBuilt.AddedFinishedCallback = true
+		end
+	end
+end
+
+--- Callback function when a structure upgrade is finished building
+--- Updates the ScenarioInfo.UnitNames table with the new unit, and upgrades further if needed
+---@param unit Unit
+function UpgradeOnStopBeingBuilt(unit)
+	local aiBrain = unit.Brain
+	local bManager = aiBrain.BaseManagers[unit.BaseName]
+	if bManager then
+		local armyIndex = aiBrain:GetArmyIndex()
+		ScenarioInfo.UnitNames[armyIndex][unit.UnitName] = unit
+		
+		local factionIndex = aiBrain:GetFactionIndex()
+		local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+		-- Check if our structure can even upgrade to begin with
+		if upgradeID then
+			-- Check if the BM is supposed to upgrade this structure further
+			for index, structure in bManager.UpgradeTable do
+				-- If the names match, and the IDs don't, we need to upgrade
+				if unit.UnitName == structure.UnitName and unit.UnitId ~= structure.FinalUnit and not unit.SetToUpgrade then
+					UpgradeBaseManagerStructure(unit, upgradeID)
+				end
+			end
+		end
 	end
 end
 
@@ -230,10 +302,6 @@ function BaseManagerSingleEngineerPlatoon(platoon)
             elseif BMBC.UnfinishedBuildingsCheck(aiBrain, baseName) then
                 BuildUnfinishedStructures(platoon)
 
-            -- Reclaim nearby wreckage/trees/rocks/people; never do this right now dont want to destroy props and stuff
-            elseif false and BMBC.BaseReclaimEnabled(aiBrain, baseName) and MIBC.ReclaimablesInArea(aiBrain, baseName) then
-                BaseManagerReclaimThread(platoon)
-
             -- Try to assist
             elseif BMBC.CategoriesBeingBuilt(aiBrain, baseName, {'MOBILE LAND', 'ALLUNITS' }) or(bManager:ConstructionNeedsAssister()) then
                 BaseManagerAssistThread(platoon)
@@ -243,7 +311,7 @@ function BaseManagerSingleEngineerPlatoon(platoon)
                 BaseManagerEngineerPatrol(platoon)
             end
         end
-        WaitTicks(50)
+        WaitTicks(75)
     end
 end
 
@@ -462,7 +530,7 @@ function AssistConditionalBuild(singleEngineerPlatoon)
 
     -- Super loop
     while aiBrain:PlatoonExists(singleEngineerPlatoon) do
-        WaitTicks(50)
+        WaitTicks(30)
 
         if engineer:IsIdleState() then
             break
@@ -489,7 +557,7 @@ function DoConditionalBuild(singleEngineerPlatoon)
     -- Get unit plans from the scenario
     local unitToBuild, unitName
     if type(selectedBuild.name) == 'table' then
-		unitName = table.random(selectedBuild.name)
+		unitName = TableRandom(selectedBuild.name)
         unitToBuild = ScenarioUtils.FindUnit(unitName, Scenario.Armies[aiBrain.Name].Units)
         if not unitToBuild then error('Unit with name "' .. unitName .. '" could not be found for conditional building.') return end
     else
@@ -516,9 +584,13 @@ function DoConditionalBuild(singleEngineerPlatoon)
 	engineer.ConditionalBuildUnitName = unitName
 
     -- Enter build monitoring loop, the bulk of the data assigning logic is handled in "EngineerOnStartBuild()"
-	while aiBrain:PlatoonExists(singleEngineerPlatoon) and not engineer:IsIdleState() do
-        WaitTicks(10)
-    end
+	repeat
+		WaitTicks(30)
+		
+		if not aiBrain:PlatoonExists(singleEngineerPlatoon) then
+            return
+        end
+    until engineer:IsIdleState()
 	
     IssueToUnitClearCommands(engineer)
     TriggerFile.RemoveUnitTrigger(engineer, ConditionalBuilderDead)
@@ -580,12 +652,14 @@ function BaseManagerAssistThread(platoon)
     local aiBrain = platoon:GetBrain()
     local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
     local assistData = platoon.PlatoonData.Assist
+	local platoonPos = platoon:GetPlatoonPosition()
     local assistee = false
     local assistingBool = false
     local beingBuiltCategories = assistData.BeingBuiltCategories or {'MASSEXTRACTION', 'MASSPRODUCTION', 'ENERGYPRODUCTION', 'FACTORY', 'EXPERIMENTAL', 'DEFENSE', 'MOBILE LAND', 'ALLUNITS'}
 
     local assistRange = assistData.AssistRange or bManager.Radius
     local counter = 0
+	local waitTime = 30
     while counter < (assistData.Time or 150) and aiBrain:PlatoonExists(platoon) do
 		local GuardedUnit = unit:GetGuardedUnit()
         -- If the engineer is assisting a construction unit that is building, or we don't need assisters, or we are a construction unit, break out and do nothing
@@ -623,7 +697,7 @@ function BaseManagerAssistThread(platoon)
                     local buildCat = ParseEntityCategory(buildeeCat)
                     for unitNum, constructionUnit in unitsBuilding do
                         -- Check if the unit is actually building something
-                        if not constructionUnit.Dead and constructionUnit:IsUnitState('Building') then --and not constructionUnit:IsUnitState('Moving') then	-- Added a 'Moving' state check
+                        if not constructionUnit.Dead and constructionUnit:IsUnitState('Building') then
                             -- Check to make sure unit being built is of proper category
                             local buildingUnit = constructionUnit.UnitBeingBuilt
                             if buildingUnit and not buildingUnit.Dead and EntityCategoryContains(buildCat, buildingUnit) then
@@ -631,7 +705,6 @@ function BaseManagerAssistThread(platoon)
                                 if not EntityCategoryContains(categories.FACTORY, constructionUnit) or aiBrain:PBMFactoryLocationCheck(constructionUnit, platoon.PlatoonData.BaseName) then
                                     -- make sure unit is within valid assist range
                                     local unitPos = constructionUnit:GetPosition()
-									local platoonPos = platoon:GetPlatoonPosition()
                                     if unitPos and platoonPos and VDist2(platoonPos[1], platoonPos[3], unitPos[1], unitPos[3]) < assistRange then
                                         assistee = constructionUnit
                                         break
@@ -671,7 +744,6 @@ function BaseManagerAssistThread(platoon)
                 end
             end
         end
-        local waitTime = 15
         WaitTicks(waitTime)
 
         counter = counter + waitTime
@@ -691,25 +763,6 @@ function ExpansionPlatoonDestroyed(brain, platoon)
     end
 end
 
---- Move a unit to a new location
----@param platoon Platoon
----@param finalLocation Vector
----@return PlatoonCommand|boolean
-function TransportUnitsToLocation(platoon, finalLocation)
-    local units = platoon:GetPlatoonUnits()
-    if AIUtils.CheckUnitPathingEx(finalLocation, units[1]:GetPosition(), units[1]) then
-        local cmd = platoon:MoveToLocation(finalLocation, false)
-        return cmd
-    end
-
-    if not AIUtils.GetTransports(platoon) then
-        return false
-    end
-    AIUtils.UseTransports(units, platoon:GetSquadUnits('Scout'), finalLocation)
-
-    return true
-end
-
 --- Engineer build structures
 ---@param platoon Platoon
 function BaseManagerEngineerThread(platoon)
@@ -723,8 +776,9 @@ function BaseManagerEngineerThread(platoon)
         error('*AI DEBUG: Missing Base Name or invalid base name for base manager engineer thread', 2)
     end
 	
+	-- Grab the Engineer
     local Engineer
-
+	
     for _, v in platoon:GetPlatoonUnits() do
         if not v.Dead and EntityCategoryContains(categories.CONSTRUCTION, v) then
             if not Engineer then
@@ -735,7 +789,8 @@ function BaseManagerEngineerThread(platoon)
             end
         end
     end
-
+	
+	-- If no Engineer was found, return
     if not Engineer or Engineer.Dead then
         aiBrain:DisbandPlatoon(platoon)
         return
@@ -753,7 +808,7 @@ function BaseManagerEngineerThread(platoon)
     local StructureFound, UnitName
 	
 	-- The idea is to search for a structure (or any unit, but 99% it's a structure) based on the priorities set above that needs to be built
-	-- If we found one, and the build order could be issued (see 'BuildBaseManagerStructure()' for that), we wait until our engineer finished with its task, then check for the next structure
+	-- If we found one, and the build order could be issued (see 'BuildBaseManagerStructure()' for that), we wait until our engineer finishes task, then check for the next structure
 	-- The original iteration uses the same dual 'for' loop, however if a structure of a higher priority got destroyed, the engineer would ignore that until all remaining categories were exhausted
 	-- In this case we check through the priorities every single time
 	-- So for example, our Engineer half-way done building all walls, and a T3 resource structure is destroyed during that, our engineer will rebuild said resource structure, and return to finishing the walls
@@ -772,7 +827,7 @@ function BaseManagerEngineerThread(platoon)
 					end
 					
 					-- Check each structure
-					StructureFound, UnitName = BuildBaseManagerStructure(aiBrain, baseManager, levelData.Name, UnitType, platoon)
+					StructureFound, UnitName = BuildBaseManagerStructure(aiBrain, Engineer, baseManager, levelData.Name, UnitType, platoon)
 					if StructureFound and UnitName then
 						Engineer.BuildingUnitName = UnitName
 						-- Break out, and do so again for the other 'for' loop
@@ -789,11 +844,9 @@ function BaseManagerEngineerThread(platoon)
 		-- We've went through the structure list, wait until the engineer is idle or dead, 
 		-- We gotta wait at least once under any circumstances, so I'm not using a "while" loop here, because this function can freeze the sim if say, an T1 Aeon Bomber stuns our engineer unit
 		repeat
-			WaitTicks(EngineerBuildDelay)
-
-            --if not aiBrain:PlatoonExists(platoon) then
-                --return
-            --end
+			if not aiBrain:PlatoonExists(platoon) then
+                return
+            end
         until Engineer.Dead or Engineer:IsIdleState()
 		
 		-- Break out if we couldn't find a structure to build
@@ -814,15 +867,9 @@ end
 ---@param platoon Platoon
 ---@return boolean
 ---@return boolean
-function BuildBaseManagerStructure(aiBrain, baseManager, levelName, buildingType, platoon)
+function BuildBaseManagerStructure(aiBrain, eng, baseManager, levelName, buildingType, platoon)
     local buildTemplate = aiBrain.BaseTemplates[baseManager.BaseName .. levelName].Template
     local buildList = aiBrain.BaseTemplates[baseManager.BaseName .. levelName].List
-	local eng = platoon:GetPlatoonUnits()[1]
-	--[[
-	
-	local BuildRange = eng.Blueprint.Economy.MaxBuildDistance
-	
-	]]
 	
     if not buildTemplate or not buildList or not aiBrain:PlatoonExists(platoon) then
         return false
@@ -906,6 +953,7 @@ function BaseManagerTMLAI(platoon)
 
     platoon:Stop()
 	local maxRadius = unit.Blueprint.Weapon[1].MaxRadius
+	local unitPosition = unit:GetPosition()
 
     local simpleTargetting = true
     if ScenarioInfo.Options.Difficulty == 3 then
@@ -928,20 +976,16 @@ function BaseManagerTMLAI(platoon)
         if BMBC.TMLsEnabled(aiBrain, baseName) then
             local target = false
             while unit:GetTacticalSiloAmmoCount() < 1 or not target do
-                WaitSeconds(5)
-                target = false
-                while not target do
-                    target = platoon:FindPrioritizedUnit('Attack', 'Enemy', true, unit:GetPosition(), maxRadius)
-
-                    if target then
-                        break
-                    end
-
-                    WaitSeconds(5)
-
-                    if not aiBrain:PlatoonExists(platoon) then
-                        return
-                    end
+				target = target or platoon:FindPrioritizedUnit('Attack', 'Enemy', true, unitPosition, maxRadius)
+				
+				if target and unit:GetTacticalSiloAmmoCount() >= 1 then
+					break
+				end
+				
+				WaitSeconds(5)
+				
+				if not aiBrain:PlatoonExists(platoon) then
+                    return
                 end
             end
             if not target.Dead then
@@ -1039,7 +1083,7 @@ function AMUnlockRatio(platoon)
 	
     for _, v in platoon:GetPlatoonUnits() do
         if not v.Dead then
-            --v.PlatoonHandle = platoon
+            v.PlatoonHandle = platoon
             TriggerFile.CreateUnitDestroyedTrigger(callback, v)
         end
     end
@@ -1070,7 +1114,7 @@ function AMUnlockRatioTimer(platoon)
 	
     for _, v in platoon:GetPlatoonUnits() do
         if not v.Dead then
-            --v.PlatoonHandle = platoon
+            v.PlatoonHandle = platoon
             TriggerFile.CreateUnitDestroyedTrigger(callback, v)
         end
     end

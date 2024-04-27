@@ -21,7 +21,3 @@ function MasterCountDifficulty(aiBrain, master)
 	
 	return counter >= number
 end
-
--- Unused Files but moved for Mod Support
-local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
-local AIUtils = import("/lua/ai/aiutilities.lua")

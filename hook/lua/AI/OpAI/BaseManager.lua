@@ -15,33 +15,66 @@
 local BaseManagerTemplate = BaseManager
 local Factions = import('/lua/factions.lua').Factions
 
---- Callback function when a structure marked for needing an upgrade starts building something
+--- Failsafe callback function when a structure marked for needing an upgrade starts building something
 --- If that 'something' is the upgrade itself, create a callback for the upgrade
 ---@param@ unit Unit
----@param unitBeingBuilt Unit being constructed
-function StructureOnStartBuild(unit, unitBeingBuilt)
+---@param unitBeingBuilt Unit
+function FailSafeStructureOnStartBuild(unit, unitBeingBuilt)
 	-- If we are in the upgrading state, then it's the upgrade we want under normal circumstances.
 	-- We don't use different upgrades paths for coop, only that of the original SCFA (no Support Factory upgrade paths whatsoever)
 	-- If you decide to mess around with AI armies in cheat mode, and order a newly added upgrade path instead anyway, then any mishaps happening afterwards is on you!
 	if unit:IsUnitState('Upgrading') then
 		--LOG('Structure building upgrade named: ' .. tostring(unit.UnitName))
-		unitBeingBuilt.BuildingUpgrade = true
 		unitBeingBuilt.UnitName = unit.UnitName
+		unitBeingBuilt.BaseName = unit.BaseName
 
 		-- Add callback when the upgrade is finished
 		if not unitBeingBuilt.AddedFinishedCallback then
-			unitBeingBuilt:AddUnitCallback(UpgradeOnStopBeingBuilt, 'OnStopBeingBuilt')
+			unitBeingBuilt:AddUnitCallback(FailSafeUpgradeOnStopBeingBuilt, 'OnStopBeingBuilt')
 			unitBeingBuilt.AddedFinishedCallback = true
 		end
 	end
 end
 
---- Callback function when a (preferably) structure upgrade is finished building
---- Updates the ScenarioInfo.UnitNames table with the new unit
+--- Failsafe function that will upgrade factories, radar, etc. to next level
 ---@param unit Unit
-function UpgradeOnStopBeingBuilt(unit)
-	--LOG('Structure finished upgrade named: ' .. tostring(unit.UnitName))
-	ScenarioInfo.UnitNames[unit.Army][unit.UnitName] = unit
+---@param upgradeID Upgrade Blueprint
+function FailSafeUpgradeBaseManagerStructure(unit, upgradeID)
+	-- Add callback when the structure starts building something
+	if not unit.AddedUpgradeCallback then
+		unit:AddOnStartBuildCallback(FailSafeStructureOnStartBuild)
+		unit.AddedUpgradeCallback = true
+	end
+
+    IssueUpgrade({unit}, upgradeID)
+	unit.SetToUpgrade = true
+end
+
+--- Failsafe callback function when a structure upgrade is finished building
+--- Updates the ScenarioInfo.UnitNames table with the new unit, and upgrades further if needed
+---@param unit Unit
+function FailSafeUpgradeOnStopBeingBuilt(unit)
+	local aiBrain = unit.Brain
+	local bManager = aiBrain.BaseManagers[unit.BaseName]
+	
+	if bManager then
+		local armyIndex = aiBrain:GetArmyIndex()
+		ScenarioInfo.UnitNames[armyIndex][unit.UnitName] = unit
+		
+		local factionIndex = aiBrain:GetFactionIndex()
+		local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+		-- Check if our structure can even upgrade to begin with
+		if upgradeID then
+			-- Check if the BM is supposed to upgrade this structure further
+			for index, structure in bManager.UpgradeTable do
+				-- If the names match, and the IDs don't, we need to upgrade
+				if unit.UnitName == structure.UnitName and unit.UnitId ~= structure.FinalUnit and not unit.SetToUpgrade then
+					FailSafeUpgradeBaseManagerStructure(unit, upgradeID)
+				end
+			end
+		end
+	end
 end
 
 ---@class BaseManager
@@ -60,24 +93,25 @@ BaseManager = Class(BaseManagerTemplate) {
 		self.TransportsNeeded = 0
 		self.TransportsTech = 1
 		
+		-- Commented out unused states
 		self.FunctionalityStates = {
-            AirAttacks = true,
+            --AirAttacks = true,
             AirScouting = false,
             AntiAir = true,
             Artillery = true,
             BuildEngineers = true,
             CounterIntel = true,
-            EngineerReclaiming = true,
+            --EngineerReclaiming = true,
             Engineers = true,
             ExpansionBases = false,
             Fabrication = true,
             GroundDefense = true,
             Intel = true,
-            LandAttacks = true,
+            --LandAttacks = true,
             LandScouting = false,
             Nukes = false,
             Patrolling = true,
-            SeaAttacks = true,
+            --SeaAttacks = true,
             Shields = true,
             TMLs = true,
             Torpedos = true,
@@ -102,11 +136,84 @@ BaseManager = Class(BaseManagerTemplate) {
 		BaseManagerTemplate.Initialize(self, brain, baseName, markerName, radius, levelTable, diffultySeparate)
 		self:LoadDefaultBaseTransports()
     end,
+	
+	---@param self BaseManager
+    ---@param groupName string
+    ---@param addName string
+    AddToBuildingTemplate = function(self, groupName, addName)
+        local tblUnit = ScenarioUtils.AssembleArmyGroup(self.AIBrain.Name, groupName)
+        local factionIndex = self.AIBrain:GetFactionIndex()
+        local template = self.AIBrain.BaseTemplates[addName].Template
+        local list = self.AIBrain.BaseTemplates[addName].List
+        local unitNames = self.AIBrain.BaseTemplates[addName].UnitNames
+        local buildCounter = self.AIBrain.BaseTemplates[addName].BuildCounter
+        if not tblUnit then
+            error('*AI DEBUG - Group: ' .. tostring(name) .. ' not found for Army: ' .. tostring(army), 2)
+        else
+            -- Convert building to the proper type to be built if needed (ex: T2 and T3 factories to T1)
+            for i, unit in tblUnit do
+                for k, unitId in StructureTemplates.RebuildStructuresTemplate[factionIndex] do
+                    if unit.type == unitId[1] then
+                        table.insert(self.UpgradeTable, { FinalUnit = unit.type, UnitName = i, })
+                        unit.buildtype = unitId[2]
+                        break
+                    end
+                end
+                if not unit.buildtype then
+                    unit.buildtype = unit.type
+                end
+            end
+            for i, unit in tblUnit do
+                self:StoreStructureName(i, unit, unitNames)
+                for j, buildList in StructureTemplates.BuildingTemplates[factionIndex] do -- BuildList[1] is type ("T1LandFactory"); buildList[2] is unitId (ueb0101)
+                    local unitPos = { unit.Position[1], unit.Position[3], 0 }
+                    if unit.buildtype == buildList[2] and buildList[1] ~= 'T3Sonar' then -- If unit to be built is the same id as the buildList unit it needs to be added
+                        self:StoreBuildCounter(buildCounter, buildList[1], buildList[2], unitPos, i)
 
+                        local inserted = false
+                        for k, section in template do -- Check each section of the template for the right type
+                            if section[1][1] == buildList[1] then
+                                table.insert(section, unitPos) -- Add position of new unit if found
+                                inserted = true
+                                break
+                            end
+                        end
+                        if not inserted then -- If section doesn't exist create new one
+                            table.insert(template, { { buildList[1] }, unitPos }) -- add new build type to list with new unit
+                            list[unit.buildtype] = { StructureType = buildList[1], StructureCategory = unit.buildtype }
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end,
+
+	--- Overwrite to return -1 --> building can be rebuilt indefinitely
     BuildingCounterDifficultyDefault = function(self, buildingType)
         return -1
     end,
 	
+	---@param self BaseManager
+    ---@param location Vector
+    ---@param buildCounter number
+    ---@return boolean
+    CheckUnitBuildCounter = function(self, location, buildCounter)
+        for xVal, xData in buildCounter do
+            if xVal == location[1] then
+                for yVal, yData in xData do
+                    if yVal == location[2] then
+						return (yData.Counter > 0 or yData.Counter == -1)
+                    end
+                end
+            end
+        end
+
+        return false
+    end,
+	
+	--- Failsafe thread that will periodically loop through existing units that have been converted to lower tech level units so they can be built (ie. HQ factories)
+	--- If their unit IDs don't match the one set in the save.lua file, a failsafe function will be called to check if they are idle, so an upgrade can be started
 	---@param self BaseManager
     UpgradeCheckThread = function(self)
         local armyIndex = self.AIBrain:GetArmyIndex()
@@ -114,62 +221,36 @@ BaseManager = Class(BaseManagerTemplate) {
             if self.Active then
                 for k, v in self.UpgradeTable do
                     local unit = ScenarioInfo.UnitNames[armyIndex][v.UnitName]
-                    if unit and not unit.Dead then
-                        -- Check if the structure needs to upgrade
-                        if unit.UnitId ~= v.FinalUnit then
-                            self:ForkThread(self.BaseManagerUpgrade, unit, v.UnitName)
-                        end
+					-- Check if the structure exists, and needs to upgrade
+                    if unit and not unit.Dead and unit.UnitId ~= v.FinalUnit then
+                        --self:ForkThread(self.BaseManagerUpgrade, unit, v.UnitName)
+						self:BaseManagerUpgrade(unit, v.UnitName)
                     end
                 end
             end
-            WaitSeconds(5)
+            WaitSeconds(15)
         end
     end,
 	
-	--- Function that will upgrade factories, radar, etc. to next level
-	--- Recoded to use unit build callbacks instead of threads
-	--- It should handle most common cases of unexpected situations (like players switching to the AI's army and messing up the orders given to it)
-	--- The upgrade is added to the structure's build queue when it's first detected that it needs to upgrade
-	--- If for some unexpected reason the upgrade didn't happen, and the unit is practically idle (guarding a factory and not building anything also counts as idle), then try again
-    ---@param self BaseManager
+	--- Failsafe function that will upgrade factories, radar, etc. to next level if the initial upgrade order executed via build callbacks failed somehow
+	---@param self BaseManager
     ---@param unit Unit
     ---@param unitName string
-    BaseManagerUpgrade = function(self, unit, unitName)
-		
-		-- If we were set to upgrade, and we're busy building something, return
-		-- A factory is practically idle when it's assisting another factory, and not building anything, in that case the unit is in the 'Guarding' state, and not the 'Idle' state
-		--if unit.SetToUpgrade and ((unit:IsUnitState('Upgrading') or unit:IsUnitState('Building')) or (unit:IsUnitState('Guarding') and unit:IsUnitState('Building')) or unit:IsUnitState('AssistingCommander')) then
-		if unit.SetToUpgrade and (unit:IsUnitState('Upgrading') or unit:IsUnitState('Building') or unit:IsUnitState('AssistingCommander')) then
+	BaseManagerUpgrade = function(self, unit, unitName)
+		-- If we were set to upgrade, and we're being built, or busy building something, return
+		if unit.SetToUpgrade and (unit:IsUnitState('Upgrading') or unit:IsUnitState('Building') or unit:IsUnitState('BeingBuilt') or unit:GetNumBuildOrders(categories.ALLUNITS) > 0) then
 			return
 		end
 		
-		-- Safety check in case unit namings got messed up.
-		-- We rely on the cached name on the unit itself to determine what unit exists or needs to exist from the map's save.lua file
-		if not unit.UnitName or unit.UnitName ~= unitName then
-			WARN('Overwriting either non-existant, or mismatching unit name for structure named: ' .. tostring(UnitName))
-			unit.UnitName = unitName
+		local aiBrain = self.AIBrain
+		local factionIndex = aiBrain:GetFactionIndex()
+		local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
+		
+		if upgradeID then
+			FailSafeUpgradeBaseManagerStructure(unit, upgradeID)
+		else
+			WARN("BM Failsafe upgrade error: Couldn't find valid upgrade ID for unit named: " .. tostring(unitName) .. ", part of: " .. tostring(unit.BaseName))
 		end
-		
-		-- Add callback when the structure starts building something
-		if not unit.AddedUpgradeCallback then
-			unit:AddOnStartBuildCallback(StructureOnStartBuild)
-			unit.AddedUpgradeCallback = true
-		end
-		
-        local aiBrain = unit.Brain
-        local factionIndex = aiBrain:GetFactionIndex()
-        local upgradeID = aiBrain:FindUpgradeBP(unit.UnitId, UpgradeTemplates.StructureUpgradeTemplates[factionIndex])
-		
-        if upgradeID then
-            IssueUpgrade({unit}, upgradeID)
-			-- Set the unit as upgrading, in case we got units to build before the upgrade command
-			unit.SetToUpgrade = true
-        else
-			WARN('Structure upgrade thread for ' .. tostring(unitName) .. ' aborted, couldn\'t find a valid upgrade ID!')
-			return
-		end
-		
-		return
     end,
 	
 	ActivationFunctions = {
