@@ -1,36 +1,36 @@
 local Utilities = import("/lua/utilities.lua")
 
-------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------
 --- This is the AttackManager class that is used for campaign/coop
---- Vanilla Supreme Commander (refered to as *SC1* from now on) used this along with the PBM for its skirmish AI as well
+--- Vanilla Supreme Commander (referred to as *SC1* from now on) used this along with the PBM for its skirmish AI as well
 --- A quick rundown how it works in practice:
----		- It's used by the "BaseOpAI.lua", with platoons created via the BaseManager
+---		- In FA, it's used by the "BaseOpAI.lua", with platoons created via the BaseManager
 ---		- The BaseManager builds a bunch of PBM platoons, then combines them into an AM platoon
 ---		- The PBM platoons are defined in the many *save.lua files in "lua/AI/OpAI"
 ---		- Platoons containing the 'Child' name are the ones to be combined
 ---		- Platoons containing the 'Master' name are the ones to be converted to AM Platoons
----		- This allows for easier creation of mixed platoon compositions
 ---		- The AM is capable of forming random platoon compositions this way
 ---		- It's also less likely to leave units sitting at bases, since it combines existing platoons into a new one
----		- The loading of platoons is handled in "ScenarioUtilities.lua", in the 'OSB' related functions
--------------------------------------------------------------------------------------------------------------------------
+---		- By default, the loading of platoons is handled in "ScenarioUtilities.lua", in the 'OSB' related functions
+---		- AM platoons can be added in other ways, it's up to the mission maker/scripter how they do it
+--------------------------------------------------------------------------------------------------------------------------
 --- An example of the Attack Manager platoon 'builder' template:
 ---
 ---    Platoons = 
 ---		{
 ---        {
 ---            PlatoonName = string,
----            AttackConditions = { function, {args} },
----            AIThread = function, -- If AMPlatoon needs a specific function
----            AIName = string, -- AIs from platoon.lua
+---            AttackConditions = { function, {args} },	-- Literally build conditions, just with a different name, all of them need to return true in order for the platoon to be formed
+---            AIThread = function, 					-- If AMPlatoon needs a specific function
+---            AIName = string, 						-- AI plans from platoon.lua
 ---            Priority = num,
 ---            PlatoonData = table,
----            OverrideFormation = string, -- formation to use for the attack platoon
----            FormCallbacks = table, -- table of functions called when an AM Platoon forms
----            DestroyCallbacks = table, -- table of functions called when the platoon is destroyed
----            LocationType = string, -- location from PBM -- used if you want to get units from pool
----            PlatoonType = string, -- 'Air', 'Sea', 'Land' -- MUST BE SET IF UsePool IS TRUE
----            UsePool = bool, -- bool to use pool or not
+---            OverrideFormation = string, 				-- Formation to use for the attack platoon
+---            FormCallbacks = table, 					-- Table of functions called when an AM Platoon forms
+---            DestroyCallbacks = table, 				-- Table of functions called when the platoon is destroyed
+---            LocationType = string, 					-- Location from PBM -- used if you want to get units from pool
+---            PlatoonType = string,					-- 'Air', 'Sea', 'Land' -- MUST BE SET IF UsePool IS TRUE
+---            UsePool = bool, 							-- Bool to use pool or not
 ---        },
 ---    },
 
@@ -54,13 +54,22 @@ AttackManager = ClassSimple {
     brain = nil,
     NeedSort = false,
     PlatoonCount = { DefaultGroupAir = 0, DefaultGroupLand = 0, DefaultGroupSea = 0, },
-
+	
+	--- Engine level initialization, usually triggered by *AIBrain:InitializeAttackManager(attackDataTable)* in the campaign AI brain
+	---@param self AttackManager
+	---@param brain AI Brain
+	---@param attackDataTable table | See *Initialize()* below for its expected contents
     __init = function(self, brain, attackDataTable)
         self.Trash = TrashBag()
         self.brain = brain
-        self:Initialize(table)
+        self:Initialize(attackDataTable)
     end,
-
+	
+	--- Unique ForkThread for this class, for easy syntax usage, and data trash handling
+	--- Swaps the order of params for simpler function call
+	---@param self AttackManager
+	---@param fn Function
+	---@param ... | Further parameters for the function we want to be forked
     ForkThread = function(self, fn, ...)
         if fn then
             local thread = ForkThread(fn, self, unpack(arg))
@@ -71,8 +80,9 @@ AttackManager = ClassSimple {
         end
     end,
 	
+	--- The actual initialization of all necessary data, and the main Thread
 	---@param self AttackManager
-    ---@param attackDataTable table
+    ---@param attackDataTable table | Optional table containing the loop check delay, default build conditions, and default platoons to load
     Initialize = function(self, attackDataTable)
         self:AddDefaultPlatoons(attackDataTable.AttackConditions)
         if attackDataTable then
@@ -88,7 +98,7 @@ AttackManager = ClassSimple {
         self['AttackManagerThread'] = self:ForkThread(self.AttackManagerThread)
     end,
 	
-	--- The thread that forms the AM platoons periodically
+	--- The main thread that forms the AM platoons periodically
 	---@param self AttackManager
     AttackManagerThread = function(self)
         while true do
@@ -102,8 +112,9 @@ AttackManager = ClassSimple {
 	
 	--- Loads the default AM platoons, these aren't formed in coop/campaign, they were used by SC1's skirmish AIs
 	---@param self AttackManager
-    ---@param AttackConds table | table of conditions that return with either true or false
+    ---@param AttackConds table | Table of conditions that return with either true or false
     AddDefaultPlatoons = function(self, AttackConds)
+		-- Fallback condition
         if not AttackConds then
             AttackConds = {
                 {'/lua/editor/MiscBuildConditions.lua', 'False', {'default_brain'}},
@@ -142,17 +153,19 @@ AttackManager = ClassSimple {
 
         self:AddPlatoonsTable(platoons)
     end,
-
+	
+	--- Adds a table of platoon builders to the AM
 	---@param self AttackManager
-	---@param platoons table | table of platoons
+	---@param platoons table | Table of platoon builders
     AddPlatoonsTable = function(self, platoons)
         for k,v in platoons do
             self:AddPlatoon(v)
         end
     end,
 	
+	--- Adds a single platoon builder to the AM
 	---@param self AttackManager
-	---@param pltnTable table | table of a platoon instance
+	---@param pltnTable table | table of a platoon builder instance
     AddPlatoon = function(self, pltnTable)
         if not pltnTable.AttackConditions then
             error('*AI WARNING: INVALID ATTACK MANAGER PLATOON LIST - Missing AttackConditions', 2)
@@ -178,21 +191,27 @@ AttackManager = ClassSimple {
         self.NeedSort = true
         table.insert(self.Platoons, pltnTable)
     end,
-
+	
+	--- Wipes the current platoon list, useful if you want to give the AI a whole new list of platoons to be formed over the old ones
 	---@param self AttackManager
     ClearPlatoonList = function(self)
         self.Platoons = {}
         self.NeedSort = false
     end,
 	
+	--- Sets the loop delay for the main platoon forming thread
 	---@param self AttackManager
 	---@param interval number
     SetAttackCheckInterval = function(self, interval)
         self.AttackCheckInterval = interval
     end,
 	
+	--- Checks the provided conditions
+	--- If the first entry is "default_brain", it will be removed, this is a GPG thing ever since SC1, because the Brain param provided is always THIS AI's brain
+	--- My guess is that they planned to have any brain be providable, or that they moved these from C Engine side to Lua, and this is a leftover
 	---@param self AttackManager
 	---@param pltnInfo table | table of a platoon instance
+	---@return bool
     CheckAttackConditions = function(self, pltnInfo)
         for k, v in pltnInfo.AttackConditions do
             if v[3][1] == "default_brain" then
@@ -316,7 +335,6 @@ AttackManager = ClassSimple {
                             break
                         end
 						
-                        local poolPlatoon = self.brain:GetPlatoonUniquelyNamed('ArmyPool')
                         local poolUnits = poolPlatoon:GetPlatoonUnits()
                         local addUnits = {}
 						
@@ -357,25 +375,16 @@ AttackManager = ClassSimple {
                     end
 					-- Set the platoon's name
                     tempPlatoon.PlatoonData.PlatoonName = v.PlatoonName
-					--LOG('*AI DEBUG: ARMY ' .. tostring(self.brain:GetArmyIndex()) .. ': AM Master Platoon formed - ' .. tostring(v.BuilderName))
-					
-					-- Cache the origin base into the platoon
-					if v.LocationType then
-						tempPlatoon.LocationType = v.LocationType
-						--LOG('*AI DEBUG: ARMY ' .. tostring(self.brain:GetArmyIndex()) .. ': AM Master Platoon originates from base: ' .. tostring(tempPlatoon.LocationType))
-					end
-					
+
 					-- Set the platoon AI function
                     if v.AIThread then
                         tempPlatoon:ForkAIThread(import(v.AIThread[1])[v.AIThread[2]])
-                        --LOG('*AM DEBUG: AM Master Platoon using AI Thread: ', tostring(v.AIThread[2]), ' Builder named: ', tostring(v.BuilderName))
 					end
 					
 					-- Add callbacks when the platoon is destroyed
                     if v.DestroyCallbacks then
                         for dcbNum, destroyCallback in v.DestroyCallbacks do
                             tempPlatoon:AddDestroyCallback(import(destroyCallback[1])[destroyCallback[2]])
-                            --LOG('*AM DEBUG: AM Master Platoon adding destroy callback: ', tostring(destroyCallback[2]), ' Builder named: ', tostring(v.BuilderName))
                         end
                     end
 					
@@ -387,7 +396,6 @@ AttackManager = ClassSimple {
                             else
                                 self.Trash:Add(ForkThread(import(callback[1])[callback[2]], tempPlatoon))
                             end
-                            --LOG('*AM DEBUG: AM Master Platoon Form callback: ', tostring(callback[2]), ' Builder Named: ', tostring(v.BuilderName))
                         end
                     end
                 end

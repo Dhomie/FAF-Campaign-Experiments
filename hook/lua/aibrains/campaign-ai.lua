@@ -2,6 +2,8 @@ do
 
 -- upvalue scope for performance
 local TableInsert = table.insert
+local TableRandom = table.random
+local TableEmpty = table.empty
 
 local CampaignAIBrain = AIBrain
 
@@ -70,12 +72,12 @@ AIBrain = Class(CampaignAIBrain) {
             self.HasPlatoonList = false
             self:PBMSetEnabled(true)
 			
-			-- Create the global builder table where most of the builder data will be stored, I have no idea why this wasn't initalized here to begin with
-			-- GPG initalized in self:PBMAddPlatoon() for whatever reason
+			-- Create the global builder table where most of the builder data will be stored, I have no idea why GPG didn't define it here to begin with
+			-- They defined it in self:PBMAddPlatoon() for whatever reason
 			ScenarioInfo.BuilderTable[self.CurrentPlan] = {Air = {}, Sea = {}, Land = {}, Gate = {}}
         end
     end,
-	
+
 	--- Main building and forming platoon thread for the Platoon Build Manager
     ---@param self CampaignAIBrain
     PlatoonBuildManagerThread = function(self)
@@ -156,7 +158,7 @@ AIBrain = Class(CampaignAIBrain) {
                                     end
                                 end
                                 if priorityLevel then
-                                    local builderData = table.random(possibleTemplates)
+                                    local builderData = TableRandom(possibleTemplates)
                                     local vp = builderData.Builder
                                     local kp = builderData.Index
                                     local globalBuilder = builderData.Global
@@ -190,10 +192,11 @@ AIBrain = Class(CampaignAIBrain) {
                 end
                 WaitTicks(1)
             end
-            -- Do it all over again in 15 seconds.
+            -- Do it all over again in 10 seconds.
             WaitSeconds(self.PBM.BuildCheckInterval or 10)
         end
     end,
+	
     --- Form platoons
     --- Extracted as it's own function so you can call this to try and form platoons to clean up the pool
     ---@param self CampaignAIBrain
@@ -236,6 +239,7 @@ AIBrain = Class(CampaignAIBrain) {
 					and (not vp.LocationType or vp.LocationType == location.LocationType)
 					and self:PBMCheckBuildConditions(globalBuilder.BuildConditions, armyIndex)) then
                 local poolPlatoon = self:GetPlatoonUniquelyNamed('ArmyPool')
+				local ptnSize = personality:GetPlatoonSize()
                 local formIt = false
                 local template = vp.BuildTemplate or vp.PlatoonTemplate
 
@@ -248,29 +252,28 @@ AIBrain = Class(CampaignAIBrain) {
                     end
                     squadNum = squadNum + 1
                 end
-
+				
                 if location.Location and location.Radius and vp.LocationType then
-                    formIt = poolPlatoon:CanFormPlatoon(template, personality:GetPlatoonSize(), location.Location, location.Radius)
+                    formIt = poolPlatoon:CanFormPlatoon(template, ptnSize, location.Location, location.Radius)
                 elseif not vp.LocationType then
-                    formIt = poolPlatoon:CanFormPlatoon(template, personality:GetPlatoonSize())
+                    formIt = poolPlatoon:CanFormPlatoon(template, ptnSize)
                 end
 
                 if formIt then
                     local hndl
                     if location.Location and location.Radius and vp.LocationType then
-                        hndl = poolPlatoon:FormPlatoon(template, personality:GetPlatoonSize(), location.Location, location.Radius)
+                        hndl = poolPlatoon:FormPlatoon(template, ptnSize, location.Location, location.Radius)
                         self:PBMStoreHandle(hndl, vp)
                         if vp.PlatoonTimeOutThread then
                             vp.PlatoonTimeOutThread:Destroy()
                         end
                     elseif not vp.LocationType then
-                        hndl = poolPlatoon:FormPlatoon(template, personality:GetPlatoonSize())
+                        hndl = poolPlatoon:FormPlatoon(template, ptnSize)
                         self:PBMStoreHandle(hndl, vp)
                         if vp.PlatoonTimeOutThread then
                             vp.PlatoonTimeOutThread:Destroy()
                         end
                     end
-					--LOG('*PBM DEBUG: Platoon formed with: ', repr(TableGetn(hndl:GetPlatoonUnits())), ' Builder Named: ', repr(vp.BuilderName))
                     hndl.PlanName = template[2]
 
                     -- If we have specific AI, fork that AI thread
@@ -318,16 +321,11 @@ AIBrain = Class(CampaignAIBrain) {
                     hndl:AddDestroyCallback(self.PBMPlatoonDestroyed)
                     hndl.BuilderName = vp.BuilderName
 					
-					-- Cache the origin base into the platoon
-					if vp.LocationType then
-						hndl.LocationType = vp.LocationType
-					end
-					
 					-- Set the platoon data
 					-- Also set the platoon to be part of the attack force if specified in the platoon data, used for AttackManager platoon forming
                     if globalBuilder.PlatoonData then
                         hndl:SetPlatoonData(globalBuilder.PlatoonData)
-                        if globalBuilder.PlatoonData.AMPlatoons then
+                        if globalBuilder.PlatoonData.AMPlatoons and not TableEmpty(globalBuilder.PlatoonData.AMPlatoons) then
                             hndl:SetPartOfAttackForce()
                         end
                     end
@@ -338,6 +336,44 @@ AIBrain = Class(CampaignAIBrain) {
                 end
             end
         end
+    end,
+	
+	---@param self CampaignAIBrain
+    ---@param loc Vector
+    ---@return Vector | false
+    PBMGetLocationCoords = function(self, loc)
+        if not loc then
+            return false
+        end
+        if self.HasPlatoonList then
+            for _, v in self.PBM.Locations do
+                if v.LocationType == loc then
+                    local height = GetTerrainHeight(v.Location[1], v.Location[3])
+                    if GetSurfaceHeight(v.Location[1], v.Location[3]) > height then
+                        height = GetSurfaceHeight(v.Location[1], v.Location[3])
+                    end
+                    return {v.Location[1], height, v.Location[3]}
+                end
+            end
+        end
+        return false
+    end,
+
+    ---@param self CampaignAIBrain
+    ---@param loc Vector
+    ---@return boolean
+    PBMGetLocationRadius = function(self, loc)
+        if not loc then
+            return false
+        end
+        if self.HasPlatoonList then
+            for k, v in self.PBM.Locations do
+                if v.LocationType == loc then
+                   return v.Radius
+                end
+            end
+        end
+        return false
     end,
 
 }

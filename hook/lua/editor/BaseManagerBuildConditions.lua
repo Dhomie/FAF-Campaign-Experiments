@@ -143,6 +143,7 @@ function BaseActive(aiBrain, baseName)
 	return bManager and bManager.Active
 end
 
+--- Deprecated, it was supposed to be a condition for an unfinished reclaim function/thread
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@return boolean
