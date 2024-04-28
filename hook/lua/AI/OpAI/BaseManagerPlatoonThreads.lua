@@ -844,6 +844,8 @@ function BaseManagerEngineerThread(platoon)
 		-- We've went through the structure list, wait until the engineer is idle or dead, 
 		-- We gotta wait at least once under any circumstances, so I'm not using a "while" loop here, because this function can freeze the sim if say, an T1 Aeon Bomber stuns our engineer unit
 		repeat
+			WaitTicks(EngineerBuildDelay)
+			
 			if not aiBrain:PlatoonExists(platoon) then
                 return
             end
