@@ -1,4 +1,7 @@
 Changelog
+#v17 (28.04.2024)
+- Fixed the build loop causing the game simulation to freeze (missing WaitTick inside the loop)
+
 #v16 (27.04.2024)
 - Further implementation of build callbacks for structure upgrades, now triggered by Engineers when they start building.
 - Changed the original BM upgrade thread into a fallback thread incase the above fails somehow.
