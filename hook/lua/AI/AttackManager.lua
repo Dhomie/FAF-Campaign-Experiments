@@ -90,10 +90,9 @@ AttackManager = ClassSimple {
             if attackDataTable.Platoons then
                 self:AddPlatoonsTable(attackDataTable.Platoons)
             end
-        elseif not self.AttackCheckInterval then
-            self.AttackCheckInterval = 10
         end
 		
+		self.AttackCheckInterval = self.AttackCheckInterval or 10
         self['AttackManagerState'] = 'ACTIVE'
         self['AttackManagerThread'] = self:ForkThread(self.AttackManagerThread)
     end,

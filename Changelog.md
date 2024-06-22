@@ -1,4 +1,11 @@
 Changelog
+#v18 (22.06.2024)
+- Initial code rewrites for campaign-ai.lua, for the purposes of optimization, and easier usage
+- Fixed an issue for ConditionalBuilds where FormCallbacks didn't execute if the main platoon thread reassigns the unit. FormCallbacks are now executed before the main platoon thread is.
+- Improved the default scouting feature for the BaseManager, scouting platoons will consist as many units as many factories are capable of building them, and they will spread out proper.
+- Fixed BaseManager Engineers assisting external factory units, they will ignore them from now on.
+- Further fixes, misc. adjustments.
+
 #v17 (28.04.2024)
 - Fixed the build loop causing the game simulation to freeze (missing WaitTick inside the loop)
 

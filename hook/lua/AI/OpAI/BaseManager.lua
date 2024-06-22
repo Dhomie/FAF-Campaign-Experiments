@@ -166,7 +166,7 @@ BaseManager = Class(BaseManagerTemplate) {
             for i, unit in tblUnit do
                 self:StoreStructureName(i, unit, unitNames)
                 for j, buildList in StructureTemplates.BuildingTemplates[factionIndex] do -- BuildList[1] is type ("T1LandFactory"); buildList[2] is unitId (ueb0101)
-                    local unitPos = { unit.Position[1], unit.Position[3], 0 }
+                    local unitPos = { unit.Position[1], unit.Position[3] }
                     if unit.buildtype == buildList[2] and buildList[1] ~= 'T3Sonar' then -- If unit to be built is the same id as the buildList unit it needs to be added
                         self:StoreBuildCounter(buildCounter, buildList[1], buildList[2], unitPos, i)
 
@@ -192,6 +192,27 @@ BaseManager = Class(BaseManagerTemplate) {
 	--- Overwrite to return -1 --> building can be rebuilt indefinitely
     BuildingCounterDifficultyDefault = function(self, buildingType)
         return -1
+    end,
+	
+	--- Retrieves the amount of engineers that are building
+	--- This variable is not updated if the Engineers are killed BEFORE they could be formed into platoons (ie.: during roloff, construction)
+	--- I've added a failsafe check that will actually check if there are Engineers being built
+    ---@param self BaseManager      # An instance of the BaseManager class
+    ---@return integer              # Amount of engineers that are building
+    GetEngineersBuilding = function(self)
+		-- If there are Engineering units being built, return with the proper number, otherwise there are obviously none being built, return 0
+		--if import(BMBC).CategoriesBeingBuilt(self.AIBrain, self.BaseName, {'ENGINEER'}) then
+			return self.EngineersBuilding
+		--else
+			--return 0
+		--end
+    end,
+	
+	--- Adds or subtracts from the number of engineers that are building
+    ---@param self BaseManager      # An instance of the BaseManager class
+    ---@param count integer         # Amount to add or subtract
+    SetEngineersBuilding = function(self, count)
+		self.EngineersBuilding = self.EngineersBuilding + count
     end,
 	
 	---@param self BaseManager
@@ -349,6 +370,241 @@ BaseManager = Class(BaseManagerTemplate) {
 	end,
 	
 	---@param self BaseManager
+    LoadDefaultBaseEngineers = function(self)
+        local defaultBuilder
+        -- The Engineer AI thread for already built Engineers
+        for i = 1, 3 do
+            defaultBuilder = {
+                BuilderName = 'T' .. i .. 'BaseManaqer_EngineersWork_' .. self.BaseName,
+                PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i),
+                Priority = 1,
+                PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit' },
+                BuildConditions = {
+                    { BMBC, 'BaseManagerNeedsEngineers', { self.BaseName } },
+                    { BMBC, 'BaseActive', { self.BaseName } },
+                },
+                PlatoonData = {
+                    BaseName = self.BaseName,
+                },
+                PlatoonType = 'Land',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
+                RequiresConstruction = false,
+                LocationType = self.BaseName,
+            }
+            self.AIBrain:PBMAddPlatoon(defaultBuilder)
+        end
+
+        -- Transfer platoons - Engineers that are built by the base
+        for i = 1, 3 do
+            for j = 1, 5 do
+                for num, pType in { 'Air', 'Land', 'Sea' } do
+                    defaultBuilder = {
+                        BuilderName = 'T' .. i .. 'BaseManagerEngineerDisband_' .. j .. 'Count_' .. self.BaseName,
+                        --PlatoonAIPlan = 'DisbandAI',
+                        PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i, j),
+                        Priority = 300 * i,
+						PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit' },
+                        PlatoonType = pType,
+                        RequiresConstruction = true,
+                        LocationType = self.BaseName,
+                        PlatoonData = {
+                            NumBuilding = j,
+                            BaseName = self.BaseName,
+                        },
+                        BuildConditions = {
+                            { BMBC, 'BaseEngineersEnabled', { self.BaseName } },
+                            { BMBC, 'BaseBuildingEngineers', { self.BaseName } },
+                            { BMBC, 'HighestFactoryLevel', { i, self.BaseName } },
+                            { BMBC, 'FactoryCountAndNeed', { i, j, pType, self.BaseName } },
+                            { BMBC, 'BaseActive', { self.BaseName } },
+                        },
+                        PlatoonBuildCallbacks = { { BMBC, 'BaseManagerEngineersStarted' }, },
+                        InstanceCount = 1,
+                        BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
+                    }
+                    self.AIBrain:PBMAddPlatoon(defaultBuilder)
+                end
+            end
+        end
+    end,
+	
+	---@param self BaseManager
+    LoadDefaultBaseCDRs = function(self)
+        -- CDR Build
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_CDRPlatoon_' .. self.BaseName,
+            PlatoonTemplate = self:CreateCommanderPlatoonTemplate(),
+            Priority = 1,
+            PlatoonType = 'Gate',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
+            RequiresConstruction = false,
+            LocationType = self.BaseName,
+            PlatoonAddFunctions = {
+                -- {'/lua/ai/opai/OpBehaviors.lua', 'CDROverchargeBehavior'}, -- TODO: Re-add once it doesnt interfere with BM engineer thread
+				{ BMPT, 'EnableCDRAutoOvercharge'}, -- Enables auto-overcharge for ACUs
+                { BMPT, 'UnitUpgradeBehavior' },
+            },
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerSingleEngineerPlatoon' },
+            BuildConditions = {
+                { BMBC, 'BaseActive', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+
+    ---@param self BaseManager
+    LoadDefaultBaseSupportCDRs = function(self)
+        -- sCDR Build
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_sCDRPlatoon_' .. self.BaseName,
+            PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(),
+            Priority = 1,
+            PlatoonType = 'Gate',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
+            RequiresConstruction = false,
+            LocationType = self.BaseName,
+            PlatoonAddFunctions = {
+                { BMPT, 'UnitUpgradeBehavior' },
+            },
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerSingleEngineerPlatoon' },
+            BuildConditions = {
+                { BMBC, 'BaseActive', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+
+        -- Disband platoon
+        defaultBuilder = {
+            BuilderName = 'BaseManager_sACUDisband_' .. self.BaseName,
+            PlatoonAIPlan = 'DisbandAI',
+            PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(),
+            Priority = 900,
+            PlatoonType = 'Gate',
+            RequiresConstruction = true,
+            LocationType = self.BaseName,
+            BuildConditions = {
+                { BMBC, 'BaseEngineersEnabled', { self.BaseName } },
+                { BMBC, 'NumUnitsLessNearBase',
+                    { self.BaseName, ParseEntityCategory('SUBCOMMANDER'), self.BaseName .. '_sACUNumber' } },
+                { BMBC, 'BaseActive', { self.BaseName } },
+            },
+            InstanceCount = 1,
+            BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+	
+	---@param self BaseManager
+    LoadDefaultScoutingPlatoons = function(self)
+        -- Land Scouts
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_LandScout_' .. self.BaseName,
+            PlatoonTemplate = self:CreateLandScoutPlatoon(),
+            Priority = 500,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerScoutingAI' },
+            BuildConditions = {
+                { BMBC, 'LandScoutingEnabled', { self.BaseName, } },
+                { BMBC, 'BaseActive', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+            PlatoonType = 'Land',
+            RequiresConstruction = true,
+            LocationType = self.BaseName,
+            InstanceCount = 1,
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+
+        -- T1 Air Scouts
+        defaultBuilder = {
+            BuilderName = 'BaseManager_T1AirScout_' .. self.BaseName,
+            PlatoonTemplate = self:CreateAirScoutPlatoon(1),
+            Priority = 500,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerScoutingAI' },
+            BuildConditions = {
+                { BMBC, 'HighestFactoryLevelType', { 1, self.BaseName, 'Air' } },
+                { BMBC, 'AirScoutingEnabled', { self.BaseName, } },
+                { BMBC, 'BaseActive', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+            PlatoonType = 'Air',
+            RequiresConstruction = true,
+            LocationType = self.BaseName,
+            InstanceCount = 1,
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+
+        -- T3 Air Scouts
+        defaultBuilder = {
+            BuilderName = 'BaseManager_T3AirScout_' .. self.BaseName,
+            PlatoonTemplate = self:CreateAirScoutPlatoon(3),
+            Priority = 1000,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerScoutingAI' },
+            BuildConditions = {
+                { BMBC, 'HighestFactoryLevelType', { 3, self.BaseName, 'Air' } },
+                { BMBC, 'AirScoutingEnabled', { self.BaseName, } },
+                { BMBC, 'BaseActive', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+            PlatoonType = 'Air',
+            RequiresConstruction = true,
+            LocationType = self.BaseName,
+            InstanceCount = 1,
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+	
+	 ---@param self BaseManager
+    LoadDefaultBaseTMLs = function(self)
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_TMLPlatoon_' .. self.BaseName,
+            PlatoonTemplate = self:CreateTMLPlatoonTemplate(),
+            Priority = 300,
+            PlatoonType = 'Land',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
+            RequiresConstruction = false,
+            LocationType = self.BaseName,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerTMLPlatoon' },
+            BuildConditions = {
+                { BMBC, 'BaseActive', { self.BaseName } },
+                { BMBC, 'TMLsEnabled', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+
+    ---@param self BaseManager
+    LoadDefaultBaseNukes = function(self)
+        local defaultBuilder = {
+            BuilderName = 'BaseManager_NukePlatoon_' .. self.BaseName,
+            PlatoonTemplate = self:CreateNukePlatoonTemplate(),
+            Priority = 400,
+            PlatoonType = 'Land',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
+            RequiresConstruction = false,
+            LocationType = self.BaseName,
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerNukePlatoon' },
+            BuildConditions = {
+                { BMBC, 'BaseActive', { self.BaseName } },
+                { BMBC, 'NukesEnabled', { self.BaseName } },
+            },
+            PlatoonData = {
+                BaseName = self.BaseName,
+            },
+        }
+        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+    end,
+	
+	---@param self BaseManager
     LoadDefaultBaseTransports = function(self)
         local faction = self.AIBrain:GetFactionIndex()
 		local factionName = Factions[faction].Key
@@ -394,6 +650,47 @@ BaseManager = Class(BaseManagerTemplate) {
                 BaseName = self.BaseName,
             },
         }
+    end,
+	
+	--- Note: When the platoon template's individual unit number's required minimum is *-1*, the PBM will automatically build as many factories are capable of building the unit in a base.
+	--- In the below case, if the base has 6 Land Factories, the PBM will build 6 T1 Land Scounts
+	---@param self BaseManager
+    ---@return any
+    CreateLandScoutPlatoon = function(self)
+        local faction = self.AIBrain:GetFactionIndex()
+        local template = {
+            'LandScoutTemplate',
+            'NoPlan',
+            { 'uel0101', -1, 1, 'Scout', 'None' },
+        }
+        template = ScenarioUtils.FactionConvert(template, faction)
+
+        return template
+    end,
+	
+	
+	--- Note: When the platoon template's individual unit number's required minimum is *-1*, the PBM will automatically build as many factories are capable of building the unit in a base.
+	--- In the below case, if the base has 6 T3 Air Factories, the PBM will build 6 T3 Air Scouts
+	---@param self BaseManager
+    ---@param techLevel number
+    ---@return any
+    CreateAirScoutPlatoon = function(self, techLevel)
+        local faction = self.AIBrain:GetFactionIndex()
+        local template = {
+            'AirScoutTemplate',
+            'NoPlan',
+            { 'uea', -1, 1, 'Scout', 'None' },
+        }
+
+        if techLevel == 3 then
+            template[3][1] = template[3][1] .. '0302'
+        else
+            template[3][1] = template[3][1] .. '0101'
+        end
+
+        template = ScenarioUtils.FactionConvert(template, faction)
+
+        return template
     end,
 	
 	--- Note: When the platoon template's individual unit number's required minimum is *-1*, the PBM will automatically build as many factories are capable of building the unit in a base.
