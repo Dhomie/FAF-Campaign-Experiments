@@ -9,6 +9,7 @@ local AIBuildStructures = import("/lua/ai/aibuildstructures.lua")
 local ScenarioFramework = import("/lua/scenarioframework.lua")
 local StructureTemplates = import("/lua/buildingtemplates.lua")
 local ScenarioUtils = import("/lua/sim/scenarioutilities.lua")
+local AIUtils = import("/lua/ai/aiutilities.lua")
 
 -- Upvalued for performance
 local EntityCategoryContains = EntityCategoryContains
@@ -535,3 +536,206 @@ function ReturnTransportsToPool(platoon, data)
         end
     end
 end
+
+EngineerBuildAI = function(self)
+        self:Stop()
+        local aiBrain = self:GetBrain()
+        local platoonUnits = self:GetPlatoonUnits()
+        local factionIndex = self:GetFactionIndex()
+        local cons = self.PlatoonData.Construction
+        local buildingTmpl, buildingTmplFile, baseTmpl, baseTmplFile
+        if not cons then
+            WARN('*AI WARNING: No Construction table in PlatoonData for EngineerBuildAI.  Aborting Platoon AI Thread for: .' .. tostring(aiBrain.Name))
+            self:Stop()
+            aiBrain:PBMAdjustPriority(self, -20)
+            aiBrain:DisbandPlatoon(self)
+            return
+        else
+            buildingTmplFile = import(cons.BuildingTemplateFile or '/lua/BuildingTemplates.lua')
+            baseTmplFile = import(cons.BaseTemplateFile or '/lua/BaseTemplates.lua')
+            buildingTmpl = buildingTmplFile[(cons.BuildingTemplate or 'BuildingTemplates')][factionIndex]
+            baseTmpl = baseTmplFile[(cons.BaseTemplate or 'BaseTemplates')][factionIndex]
+
+            if cons.Location then
+                local coords = aiBrain:PBMGetLocationCoords(cons.Location)
+                self:MoveToLocation(coords, false)
+                WaitSeconds(5)
+                if not aiBrain:PlatoonExists(self) then
+                    return
+                end
+            end
+            local eng
+            for k, v in platoonUnits do
+                if not v.Dead and EntityCategoryContains(categories.CONSTRUCTION, v) then
+                    if not eng then
+                        eng = v
+                    else
+                        IssueToUnitClearCommands(v)
+                        IssueGuard({v}, eng)
+                    end
+                end
+            end
+
+            if not eng or eng.Dead then
+                aiBrain:DisbandPlatoon(self)
+                return
+            end
+
+            if self.PlatoonData.NeedGuard then
+                eng.NeedGuard = true
+            end
+
+            ---- CHOOSE APPROPRIATE BUILD FUNCTION AND SETUP BUILD VARIABLES ----
+            local reference = false
+            local refName = false
+            local buildFunction
+            local closeToBuilder
+            local relative
+            local baseTmplList = {}
+            if cons.BuildStructures then
+                if cons.NearUnitCategory then
+                    self:SetPrioritizedTargetList('support', {ParseEntityCategory(cons.NearUnitCategory)})
+                    local unitNearBy = self:FindPrioritizedUnit('support', 'Ally', false, self:GetPlatoonPosition(), 60)
+                    if unitNearBy then
+                        reference = unitNearBy:GetPosition()
+                    else
+                        reference = eng:GetPosition()
+                    end
+                    relative = false
+                    buildFunction = AIBuildStructures.AIExecuteBuildStructure
+                    TableInsert( baseTmplList, AIBuildStructures.AIBuildBaseTemplateFromLocation( baseTmpl, reference ) )
+                elseif cons.Wall then
+                    local pos = aiBrain:PBMGetLocationCoords(cons.LocationType) or cons.Position or self:GetPlatoonPosition()
+                    local radius = cons.LocationRadius or aiBrain:PBMGetLocationRadius(cons.LocationType) or 100
+                    relative = false
+                    reference = AIUtils.GetLocationNeedingWalls( aiBrain, 200, 4, 'STRUCTURE - WALLS', cons.ThreatMin, cons.ThreatMax, cons.ThreatRings )
+                    table.insert( baseTmplList, 'Blank' )
+                    buildFunction = AIBuildStructures.WallBuilder
+                elseif cons.NearBasePatrolPoints then
+                    relative = false
+                    reference = AIUtils.GetBasePatrolPoints(aiBrain, cons.Location or 'MAIN', cons.Radius or 100)
+                    baseTmpl = baseTmplFile['ExpansionBaseTemplates'][factionIndex]
+                    for k,v in reference do
+                        table.insert( baseTmplList, AIBuildStructures.AIBuildBaseTemplateFromLocation( baseTmpl, v ) )
+                    end
+                    -- Must use BuildBaseOrdered to start at the marker; otherwise it builds closest to the eng
+                    buildFunction = AIBuildStructures.AIBuildBaseTemplateOrdered
+                elseif cons.NearMarkerType and cons.MarkerUnitCount then
+                    local pos = aiBrain:PBMGetLocationCoords(cons.LocationType) or cons.Position or self:GetPlatoonPosition()
+                    local radius = cons.LocationRadius or aiBrain:PBMGetLocationRadius(cons.LocationType) or 100
+                    reference, refName = AIUtils.AIGetMarkerLeastUnits( aiBrain, cons.NearMarkerType, (cons.MarkerRadius or 100),
+                            pos, radius, cons.MarkerUnitCount, ParseEntityCategory( cons.MarkerUnitCategory ), cons.ThreatMin,
+                            cons.ThreatMax, cons.ThreatRings )
+                    if not cons.BaseTemplate and ( cons.NearMarkerType == 'Defensive Point' or cons.NearMarkerType == 'Expansion Area' ) then
+                        baseTmpl = baseTmplFile['ExpansionBaseTemplates'][factionIndex]
+                    end
+                    if cons.ExpansionBase and refName then
+                        AIBuildStructures.AINewExpansionBase( aiBrain, refName, reference, (cons.ExpansionRadius or 75), cons.ExpansionTypes )
+                    end
+                    relative = false
+                    if reference and aiBrain:GetInfluenceAtPosition( reference , 1, false ) > -5 then
+                        --aiBrain:ExpansionHelp( eng, reference )
+                    end
+                    table.insert( baseTmplList, AIBuildStructures.AIBuildBaseTemplateFromLocation( baseTmpl, reference ) )
+                    -- Must use BuildBaseOrdered to start at the marker; otherwise it builds closest to the eng
+                    buildFunction = AIBuildStructures.AIBuildBaseTemplateOrdered
+                elseif cons.NearMarkerType then
+                    if not cons.ThreatMin or not cons.ThreatMax or not cons.ThreatRings then
+                        cons.ThreatMin = -1000000
+                        cons.ThreatMax = 1000000
+                        cons.ThreatRings = 0
+                    end
+                    if not cons.BaseTemplate and ( cons.NearMarkerType == 'Defensive Point' or cons.NearMarkerType == 'Expansion Area' ) then
+                        baseTmpl = baseTmplFile['ExpansionBaseTemplates'][factionIndex]
+                    end
+                    relative = false
+                    local pos = self:GetPlatoonPosition()
+                    reference, refName = AIUtils.AIGetClosestThreatMarkerLoc(aiBrain, cons.NearMarkerType, pos[1], pos[3],
+                                                                    cons.ThreatMin, cons.ThreatMax, cons.ThreatRings)
+                    if cons.ExpansionBase and refName then
+                        AIBuildStructures.AINewExpansionBase( aiBrain, refName, reference, (cons.ExpansionRadius or 75), cons.ExpansionTypes )
+                    end
+                    if reference and aiBrain:GetInfluenceAtPosition( reference, 1, false ) > -5 then
+                        --aiBrain:ExpansionHelp( eng, reference )
+                    end
+                    table.insert( baseTmplList, AIBuildStructures.AIBuildBaseTemplateFromLocation( baseTmpl, reference ) )
+                    buildFunction = AIBuildStructures.AIExecuteBuildStructure
+                elseif cons.AdjacencyCategory then
+                    relative = false
+                    local pos = self:GetPlatoonPosition()
+                    local cat = ParseEntityCategory(cons.AdjacencyCategory)
+                    local radius = ( cons.AdjacencyDistance or 50 )
+                    if not pos or not pos then
+                        aiBrain:DisbandPlatoon(self)
+                        return
+                    end
+                    reference  = AIUtils.GetOwnUnitsAroundPoint( aiBrain, cat, pos, radius, cons.ThreatMin,
+                                                                cons.ThreatMax, cons.ThreatRings)
+                    buildFunction = AIBuildStructures.AIBuildAdjacency
+                    table.insert( baseTmplList, baseTmpl )
+                else
+                    table.insert( baseTmplList, baseTmpl )
+                    relative = true
+                    reference = true
+                    buildFunction = AIBuildStructures.AIExecuteBuildStructure
+                end
+                if cons.BuildClose then
+                    closeToBuilder = eng
+                end
+
+                ---- BUILD BUILDINGS HERE ----
+                for baseNum, baseListData in baseTmplList do
+                    for k, v in cons.BuildStructures do
+                        if aiBrain:PlatoonExists(self) then
+                            if not eng:IsDead() then
+                                IssueStop({eng})
+                                IssueClearCommands({eng})
+                                local retVal, pos = buildFunction(aiBrain, eng, v, closeToBuilder, relative, buildingTmpl, baseListData, reference)
+                                if not retVal and pos then
+                                    --LOG('*AI DEBUG: ARMY ' .. aiBrain:GetArmyIndex() .. ' - Engineer moving to capture at ' .. pos[1] .. ', ' .. pos[3] )
+                                    IssueMove( {eng}, pos )
+                                end
+                                if retVal or pos then
+                                    repeat
+                                        WaitSeconds(1)
+                                        if not aiBrain:PlatoonExists(self) then
+                                            return
+                                        end
+                                    until eng.Dead or eng:IsIdleState()
+                                end
+                                if pos then
+                                    -- Check if unit at location
+                                    local checkUnits = aiBrain:GetUnitsAroundPoint( categories.STRUCTURE + ( categories.MOBILE * categories.LAND), pos, 10, 'Enemy' )
+                                    --( Rect( pos[1] - 7, pos[3] - 7, pos[1] + 7, pos[3] + 7 ) )
+                                    if checkUnits then
+                                        for num,unit in checkUnits do
+                                            if not unit:IsDead() and EntityCategoryContains( categories.ENGINEER, unit ) and ( unit:GetAIBrain():GetFactionIndex() ~= aiBrain:GetFactionIndex() ) then
+                                                IssueReclaim( {eng}, unit )
+                                            else
+                                                IssueCapture( {eng}, unit )
+                                            end
+                                        end
+                                        repeat
+                                            WaitSeconds(1)
+                                            if not aiBrain:PlatoonExists(self) then
+                                                return
+                                            end
+                                        until eng:IsDead() or eng:IsIdleState()
+                                    end
+                                end
+                            else
+                                if aiBrain:PlatoonExists(self) then
+                                    aiBrain:DisbandPlatoon(self)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if aiBrain:PlatoonExists(self) then
+            local location = AIUtils.RandomLocation(aiBrain:GetArmyStartPos())
+            self:MoveToLocation(location, false)
+            aiBrain:DisbandPlatoon(self)
+        end
+    end

@@ -60,7 +60,7 @@ AIOpts = {
 	{
         default = 1,
         label = "Campaign AI Construction Delay:",
-        help = "Set the delay for AI Engineering units when to build another structure once it\'s current structure has been finished, in game ticks. 10 game ticks translates to 1 second, default is 10",
+        help = "Set the delay for AI Engineering units when to build another structure once it\'s current structure has been finished, in game ticks. 10 game ticks translates to 1 second, default is 5",
 		key = 'EngineerBuildDelay',
 		value_text = "%s",
         value_help = "Build delay of %s",

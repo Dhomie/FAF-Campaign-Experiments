@@ -1,4 +1,8 @@
 Changelog
+#v19 (29.12.2024)
+- Fixed BaseManager engineering units sitting idle if they move out of their bases' radius, they will only assist applicable units inside their bases.
+- Further fixes, misc. adjustments.
+
 #v18 (22.06.2024)
 - Initial code rewrites for campaign-ai.lua, for the purposes of optimization, and easier usage
 - Fixed an issue for ConditionalBuilds where FormCallbacks didn't execute if the main platoon thread reassigns the unit. FormCallbacks are now executed before the main platoon thread is.

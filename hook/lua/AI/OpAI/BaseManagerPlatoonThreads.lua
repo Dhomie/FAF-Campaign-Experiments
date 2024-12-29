@@ -324,7 +324,7 @@ function BaseManagerSingleEngineerPlatoon(platoon)
                 BaseManagerEngineerPatrol(platoon)
             end
         end
-        WaitTicks(75)
+        WaitTicks(80)
     end
 end
 
@@ -670,11 +670,12 @@ function BaseManagerAssistThread(platoon)
     local aiBrain = platoon:GetBrain()
 	local BaseName = platoon.PlatoonData.BaseName
     local bManager = aiBrain.BaseManagers[BaseName]
+	local bManagerPos = bManager.Position
     local assistData = platoon.PlatoonData.Assist
-	local platoonPos = platoon:GetPlatoonPosition()
     local assistee = false
     local assistingBool = false
-    local beingBuiltCategories = assistData.BeingBuiltCategories or {'MASSEXTRACTION', 'MASSPRODUCTION', 'ENERGYPRODUCTION', 'FACTORY', 'EXPERIMENTAL', 'DEFENSE', 'MOBILE LAND', 'ALLUNITS'}
+    --local beingBuiltCategories = assistData.BeingBuiltCategories or {'MASSPRODUCTION', 'ENERGYPRODUCTION', 'FACTORY', 'EXPERIMENTAL', 'DEFENSE', 'MOBILE LAND', 'ALLUNITS'}
+	local beingBuiltCategories = assistData.BeingBuiltCategories or {'MASSPRODUCTION', 'ENERGYPRODUCTION', 'FACTORY', 'EXPERIMENTAL', 'DEFENSE', 'MOBILE', 'ALLUNITS'}
 
     local assistRange = assistData.AssistRange or bManager.Radius
     local counter = 0
@@ -710,7 +711,7 @@ function BaseManagerAssistThread(platoon)
             -- Find valid unit to assist
             -- Get all units building stuff - TODO get list with point and radius; get list of units with state
             if not assistee then
-                local unitsBuilding = aiBrain:GetListOfUnits(categories.CONSTRUCTION, false)
+				local unitsBuilding = BMBC.GetOwnUnitsAroundPosition(aiBrain, categories.CONSTRUCTION, bManagerPos, assistRange)
                 -- Iterate through being built categories
                 for catNum, buildeeCat in beingBuiltCategories do
                     local buildCat = ParseEntityCategory(buildeeCat)
@@ -722,12 +723,8 @@ function BaseManagerAssistThread(platoon)
                             if buildingUnit and not buildingUnit.Dead and EntityCategoryContains(buildCat, buildingUnit) then
                                 -- If the unit building is a factory make sure its in the right PBM Location Type
                                 if not EntityCategoryContains(categories.FACTORY, constructionUnit) or aiBrain:PBMFactoryLocationCheck(constructionUnit, BaseName) then
-                                    -- make sure unit is within valid assist range
-                                    local unitPos = constructionUnit:GetPosition()
-                                    if unitPos and platoonPos and VDist2(platoonPos[1], platoonPos[3], unitPos[1], unitPos[3]) < assistRange then
-                                        assistee = constructionUnit
-                                        break
-                                    end
+                                    assistee = constructionUnit
+                                    break
                                 end
                             end
                         end
@@ -1148,7 +1145,7 @@ end
 ---@param bManager BaseManager
 ---@param unit Unit
 ---@return Vector[]
-function GetScoutingPath(bManager, unit)
+function GetBaseManagerScoutingPath(bManager, unit)
     local mapInfo = ScenarioInfo.MapData.PlayableRect or {0, 0, ScenarioInfo.size[1], ScenarioInfo.size[2]}
 
     local pathablePoints = {}
@@ -1187,11 +1184,56 @@ function GetScoutingPath(bManager, unit)
             end
             currX = currX + 48
         end
-        -- Determine which poitnts the unit can actually path to
+        -- Determine which points the unit can actually path to
         for k, v in possiblePoints do
             if AIUtils.CheckUnitPathingEx(v, unit:GetPosition(), unit) then
                 TableInsert(pathablePoints, v)
             end
+        end
+    end
+    return pathablePoints
+end
+
+--- Generates a table of random, but pathable locations for use by scouting units, inside the playable area
+---@param unit Unit
+---@return Vector[]
+function GetScoutingPath(unit)
+    local mapInfo = ScenarioInfo.MapData.PlayableRect or {0, 0, ScenarioInfo.size[1], ScenarioInfo.size[2]}
+
+    local pathablePoints = {}
+    local possiblePoints = {}
+
+    local startX = mapInfo[1]
+        local startY = mapInfo[2]
+        local currX = startX
+        -- Create a table of possible points by increasing x and y vals
+    while currX < mapInfo[3] do
+        local currY = startY
+        while currY < mapInfo[4] do
+            local useY = currY
+            local useX = currX
+            -- Check if the coords are the map boundaries and move them in if they are
+            if currX == mapInfo[1] then
+                useX = currX + 8
+            end
+            if currY == mapInfo[2] then
+                useY = currY + 8
+            end
+            if currX == mapInfo[3] then
+                useX = currX - 8
+            end
+            if currY == mapInfo[4] then
+                useY = currY - 8
+            end
+            TableInsert(possiblePoints, { useX, 0, useY })
+            currY = currY + 48
+        end
+        currX = currX + 48
+    end
+    -- Determine which points the unit can actually path to
+    for k, v in possiblePoints do
+        if AIUtils.CheckUnitPathingEx(v, unit:GetPosition(), unit) then
+            TableInsert(pathablePoints, v)
         end
     end
     return pathablePoints
@@ -1208,7 +1250,7 @@ function BaseManagerScoutingAI(platoon)
 		for Index, Unit in platoon:GetPlatoonUnits() do
 			if not Unit.Dead then
 				-- Get new points every time so if the area changes we are on it
-				local pathablePoints = GetScoutingPath(bManager, Unit)
+				local pathablePoints = GetBaseManagerScoutingPath(bManager, Unit)
 				local numPoints = TableGetn(pathablePoints)
 				if numPoints > 0 then
 					IssueToUnitClearCommands(Unit)
@@ -1222,6 +1264,102 @@ function BaseManagerScoutingAI(platoon)
 				end
 			end
 		end
-		WaitSeconds(30)
+		WaitTicks(300)
+    end
+end
+
+--- Sends each individual platoon unit on a randomized path, used for scouting
+---@param platoon Platoon
+function ScoutingAI(platoon)
+    local aiBrain = platoon:GetBrain()
+
+    -- Set up move orders to up to 10 points for each individual unit
+    while aiBrain:PlatoonExists(platoon) do
+		for Index, Unit in platoon:GetPlatoonUnits() do
+			if not Unit.Dead then
+				-- Get new points every time so if the area changes we are on it
+				local pathablePoints = GetScoutingPath(Unit)
+				local numPoints = TableGetn(pathablePoints)
+				if numPoints > 0 then
+					IssueToUnitClearCommands(Unit)
+					local count = 0
+					
+					while count < 10 do
+						local pickNum = Random(1, numPoints)
+						IssueToUnitMove(Unit, pathablePoints[pickNum])
+						count = count + 1
+					end
+				end
+			end
+		end
+		WaitTicks(300)
+    end
+end
+
+---@param platoon Platoon
+function UnitUpgradeBehavior(platoon)
+    local unit = platoon:GetPlatoonUnits()[1]
+	
+	-- Always update the CDR data, because the command unit is assigned to a new platoon when we do the upgrade, and the current param platoon is thus destroyed, leading to a nil reference
+	if platoon.PlatoonData and not unit.CDRData then
+        unit.CDRData = platoon.PlatoonData
+    end
+	
+	-- Add the upgrade thread only once, since it'll run until the command unit is dead
+    if not unit.UpgradeThread then
+        unit.UpgradeThread = unit:ForkThread(UnitUpgradeThread)
+    end
+end
+
+---@param unit Unit
+function UnitUpgradeThread(unit)
+    local aiBrain = unit:GetAIBrain()
+	-- Local reference for performance
+	local BaseManagers = aiBrain.BaseManagers
+
+    -- Determine the type of unit
+    local unitType = false
+    if EntityCategoryContains(categories.COMMAND, unit) then
+        unitType = 'DefaultACU'
+    elseif EntityCategoryContains(categories.SUBCOMMANDER, unit) then
+        unitType = 'DefaultSACU'
+    end
+
+    while not unit.Dead do
+		-- Update the BM as needed
+		local bManager = BaseManagers[unit.CDRData.BaseName]
+        if bManager then
+            local upgradeName = bManager:UnitNeedsUpgrade(unit, unitType)
+			
+			-- TODO: Add an economy check here so we can use this thread for updating in non-BM bases
+            if upgradeName and not unit:IsUnitState('Building') then
+                -- Remove the unit from the builders list
+                if bManager:IsConstructionUnit(unit) then
+                    bManager:RemoveConstructionEngineer(unit)
+                end
+
+                local platoon = aiBrain:MakePlatoon('', '')
+                aiBrain:AssignUnitsToPlatoon(platoon, {unit}, 'support', 'none')
+
+                local order = {
+                    TaskName = "EnhanceTask",
+                    Enhancement = upgradeName
+                }
+                IssueStop({unit})
+                IssueToUnitClearCommands(unit)
+                IssueScript({unit}, order)
+
+                repeat
+                    WaitTicks(15)
+                    if unit.Dead then
+                        return
+                    end
+                until unit:IsIdleState()
+                aiBrain:DisbandPlatoon(platoon)
+            end
+        else
+			WARN("No BaseManager detected for: " .. tostring(aiBrain.Name) .. ", for base: " .. tostring(unit.CDRData.BaseName))
+		end
+        WaitTicks(50)
     end
 end

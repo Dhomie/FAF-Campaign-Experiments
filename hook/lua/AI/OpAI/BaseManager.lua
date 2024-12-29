@@ -233,6 +233,68 @@ BaseManager = Class(BaseManagerTemplate) {
         return false
     end,
 	
+	--- Determines if a specific unit needs upgrades, returns name of upgrade if needed
+    --- Works with up to 3-level enhancement paths
+    --- TODO: Make a check that can deal with any number of prerequisites, like a 4-5-6 level enhancement path, example: ('Shield -> 'ShieldHeavy' -> 'ShieldVeryHeavy' ->'ShieldUltraHeavy' -> 'ShieldUltraBigHeavy')
+    ---@param self BaseManager
+    ---@param unit Unit
+    ---@param unitType string
+    ---@return string|boolean
+    UnitNeedsUpgrade = function(self, unit, unitType)
+        if unit.Dead then
+            return false
+        end
+
+        -- Find appropriate data about unit upgrade info
+		local key = unitType or unit.UnitName
+        local upgradeTable = self.UnitUpgrades[key]
+
+        if not upgradeTable then
+            return false
+        end
+
+        local allEnhancements = unit.Blueprint.Enhancements
+        if not allEnhancements then
+            return false
+        end
+			
+        for index, upgradeName in upgradeTable do
+            -- Find the upgrade in the unit's bp
+            local bpUpgrade = allEnhancements[upgradeName]
+            if bpUpgrade then
+                if not unit:HasEnhancement(upgradeName) then
+                    -- Check if we already have an enhancement on the slot our desired enhancement wants to occupy
+                    if SimUnitEnhancements and SimUnitEnhancements[unit.EntityId] and SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] then
+                        -- Account for 3-level enhancements, like the Cybran ACU's recent *Stealth -> Self-Repair -> Cloak* enhancement path, if we want 'Cloak', check for 'Stealth' 
+                        -- Check for the prerequisite's prerequisite, and return it
+                        if bpUpgrade.Prerequisite and allEnhancements[bpUpgrade.Prerequisite].Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == allEnhancements[bpUpgrade.Prerequisite].Prerequisite) then
+                            return bpUpgrade.Prerequisite
+                        -- If it's a direct prerequisite enhancement, return upgrade name
+                        elseif bpUpgrade.Prerequisite and (SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] == bpUpgrade.Prerequisite) then
+                            return upgradeName
+                        -- It's not a prerequisite, remove the enhancement
+                        else
+                            return SimUnitEnhancements[unit.EntityId][bpUpgrade.Slot] .. 'Remove'
+                        end
+                    -- Check if our desired enhancement's prerequisite has any prerequisites, and return its name (Prerequisiteception)
+                    elseif bpUpgrade.Prerequisite and allEnhancements[bpUpgrade.Prerequisite].Prerequisite and not unit:HasEnhancement(allEnhancements[bpUpgrade.Prerequisite].Prerequisite) then
+                        return allEnhancements[bpUpgrade.Prerequisite].Prerequisite
+                    -- Check if our desired enhancement has any prerequisites, and return its name
+                    elseif bpUpgrade.Prerequisite and not unit:HasEnhancement(bpUpgrade.Prerequisite) then
+                        return bpUpgrade.Prerequisite
+                    -- No requirement and no enhancement occupying our desired slot, return the upgrade name
+                    else
+                        return upgradeName
+                    end
+                end
+            else
+                error('*Base Manager Error: ' .. self.BaseName .. ', enhancement: ' .. upgradeName .. ' was not found in the unit\'s bp.')
+            end
+        end
+
+        return false
+    end,
+	
 	--- Failsafe thread that will periodically loop through existing units that have been converted to lower tech level units so they can be built (ie. HQ factories)
 	--- If their unit IDs don't match the one set in the save.lua file, a failsafe function will be called to check if they are idle, so an upgrade can be started
 	---@param self BaseManager
@@ -377,7 +439,7 @@ BaseManager = Class(BaseManagerTemplate) {
             defaultBuilder = {
                 BuilderName = 'T' .. i .. 'BaseManaqer_EngineersWork_' .. self.BaseName,
                 PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i),
-                Priority = 1,
+                Priority = 5,
                 PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit' },
                 BuildConditions = {
                     { BMBC, 'BaseManagerNeedsEngineers', { self.BaseName } },
@@ -399,10 +461,10 @@ BaseManager = Class(BaseManagerTemplate) {
                 for num, pType in { 'Air', 'Land', 'Sea' } do
                     defaultBuilder = {
                         BuilderName = 'T' .. i .. 'BaseManagerEngineerDisband_' .. j .. 'Count_' .. self.BaseName,
-                        --PlatoonAIPlan = 'DisbandAI',
+                        PlatoonAIPlan = 'DisbandAI',
                         PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i, j),
-                        Priority = 300 * i,
-						PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit' },
+                        Priority = 500 * i,
+						--PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit' },
                         PlatoonType = pType,
                         RequiresConstruction = true,
                         LocationType = self.BaseName,
@@ -425,6 +487,38 @@ BaseManager = Class(BaseManagerTemplate) {
                 end
             end
         end
+		
+		-- Failsaife Transfer platoons - Engineers that are built by the base, lower priority
+		-- Engineer counts are only processed after platoons are formed, if they are killed right as they roll off of factories, it can mess up the actual engineer counts
+		-- These are single-unit, failsafe templates that ignore engineers that are already being built, and just check if we have less engineers than desired
+        for i = 1, 3 do
+            for num, pType in { 'Air', 'Land', 'Sea' } do
+                defaultBuilder = {
+                    BuilderName = 'Failsafe_T' .. i .. '_BaseManagerEngineerDisband_' .. pType .. '_' .. self.BaseName,
+                    PlatoonAIPlan = 'DisbandAI',
+                    PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i, 1),
+                    Priority = 400 * i,
+                    PlatoonType = pType,
+                    RequiresConstruction = true,
+                    LocationType = self.BaseName,
+                    PlatoonData = {
+						NumBuilding = 1,
+                        BaseName = self.BaseName,
+                    },
+                    BuildConditions = {
+						{ BMBC, 'BaseManagerNeedsEngineers', { self.BaseName } },
+                        { BMBC, 'BaseEngineersEnabled', { self.BaseName } },
+                        { BMBC, 'BaseBuildingEngineers', { self.BaseName } },
+                        { BMBC, 'HighestFactoryLevel', { i, self.BaseName } },
+                        { BMBC, 'BaseActive', { self.BaseName } },
+                    },
+                    PlatoonBuildCallbacks = { { BMBC, 'BaseManagerEngineersStarted' }, },
+                    InstanceCount = 1,
+                    BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
+                }
+                self.AIBrain:PBMAddPlatoon(defaultBuilder)
+            end
+        end
     end,
 	
 	---@param self BaseManager
@@ -433,12 +527,11 @@ BaseManager = Class(BaseManagerTemplate) {
         local defaultBuilder = {
             BuilderName = 'BaseManager_CDRPlatoon_' .. self.BaseName,
             PlatoonTemplate = self:CreateCommanderPlatoonTemplate(),
-            Priority = 1,
+            Priority = 5,
             PlatoonType = 'Gate',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
             RequiresConstruction = false,
             LocationType = self.BaseName,
             PlatoonAddFunctions = {
-                -- {'/lua/ai/opai/OpBehaviors.lua', 'CDROverchargeBehavior'}, -- TODO: Re-add once it doesnt interfere with BM engineer thread
 				{ BMPT, 'EnableCDRAutoOvercharge'}, -- Enables auto-overcharge for ACUs
                 { BMPT, 'UnitUpgradeBehavior' },
             },
@@ -459,7 +552,7 @@ BaseManager = Class(BaseManagerTemplate) {
         local defaultBuilder = {
             BuilderName = 'BaseManager_sCDRPlatoon_' .. self.BaseName,
             PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(),
-            Priority = 1,
+            Priority = 5,
             PlatoonType = 'Gate',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
             RequiresConstruction = false,
             LocationType = self.BaseName,
@@ -481,17 +574,15 @@ BaseManager = Class(BaseManagerTemplate) {
             BuilderName = 'BaseManager_sACUDisband_' .. self.BaseName,
             PlatoonAIPlan = 'DisbandAI',
             PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(),
-            Priority = 900,
+            Priority = 500,
             PlatoonType = 'Gate',
             RequiresConstruction = true,
             LocationType = self.BaseName,
             BuildConditions = {
                 { BMBC, 'BaseEngineersEnabled', { self.BaseName } },
-                { BMBC, 'NumUnitsLessNearBase',
-                    { self.BaseName, ParseEntityCategory('SUBCOMMANDER'), self.BaseName .. '_sACUNumber' } },
+                { BMBC, 'NumUnitsLessNearBase', { self.BaseName, ParseEntityCategory('SUBCOMMANDER'), self.BaseName .. '_sACUNumber' } },
                 { BMBC, 'BaseActive', { self.BaseName } },
             },
-            InstanceCount = 1,
             BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
         }
         self.AIBrain:PBMAddPlatoon(defaultBuilder)
@@ -515,7 +606,6 @@ BaseManager = Class(BaseManagerTemplate) {
             PlatoonType = 'Land',
             RequiresConstruction = true,
             LocationType = self.BaseName,
-            InstanceCount = 1,
         }
         self.AIBrain:PBMAddPlatoon(defaultBuilder)
 
@@ -536,7 +626,6 @@ BaseManager = Class(BaseManagerTemplate) {
             PlatoonType = 'Air',
             RequiresConstruction = true,
             LocationType = self.BaseName,
-            InstanceCount = 1,
         }
         self.AIBrain:PBMAddPlatoon(defaultBuilder)
 
@@ -557,7 +646,6 @@ BaseManager = Class(BaseManagerTemplate) {
             PlatoonType = 'Air',
             RequiresConstruction = true,
             LocationType = self.BaseName,
-            InstanceCount = 1,
         }
         self.AIBrain:PBMAddPlatoon(defaultBuilder)
     end,
@@ -567,7 +655,7 @@ BaseManager = Class(BaseManagerTemplate) {
         local defaultBuilder = {
             BuilderName = 'BaseManager_TMLPlatoon_' .. self.BaseName,
             PlatoonTemplate = self:CreateTMLPlatoonTemplate(),
-            Priority = 300,
+            Priority = 5,
             PlatoonType = 'Land',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
             RequiresConstruction = false,
             LocationType = self.BaseName,
@@ -588,7 +676,7 @@ BaseManager = Class(BaseManagerTemplate) {
         local defaultBuilder = {
             BuilderName = 'BaseManager_NukePlatoon_' .. self.BaseName,
             PlatoonTemplate = self:CreateNukePlatoonTemplate(),
-            Priority = 400,
+            Priority = 5,
             PlatoonType = 'Land',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
             RequiresConstruction = false,
             LocationType = self.BaseName,
@@ -713,4 +801,87 @@ BaseManager = Class(BaseManagerTemplate) {
         template = ScenarioUtils.FactionConvert(template, faction)
         return template
     end,
+}
+
+AdvancedBaseManager = Class(BaseManager) {
+	Create = function(self)
+		
+	end,
+	
+	Initialize = function(self, brain, baseName, markerName, radius, baseTable)
+		self.DesiredStructures = {
+			
+		}
+		self.Structures = {
+			--T3Resource = 0,			-- T3 Mex
+			--T2Resource = 0,			-- T2 Mex
+			T1Resource = 0,				-- T1 Mex
+			T3EnergyProduction = 0,
+			T2EnergyProduction = 0,
+			T1EnergyProduction = 0,
+			T1HydroCarbon = 0,
+			T3MassCreation = 0,			-- T3 Mass Fabricator
+			T1MassCreation = 0,			-- T2 Mass Fabricator, this is a legacy naming from SC1, which wasn't changed to avoid coding issues
+			T2EngineerSupport = 0,		-- T2 Engineering Station
+			T3SupportLandFactory = 0,
+			T3SupportAirFactory = 0,	
+			T3SupportSeaFactory = 0,	
+			T2SupportLandFactory = 0,	
+			T2SupportAirFactory = 0,	
+			T2SupportSeaFactory = 0,	
+			T1LandFactory = 0,			
+			T1AirFactory = 0,
+			T1SeaFactory = 0,
+			--T3ShieldDefense = 0,
+			T2ShieldDefense = 0,
+			T2StrategicMissile = 0,		-- TML
+			T3StrategicMissile = 0,		-- SML
+			T3StrategicMissileDefense = 0,
+			--T3Radar = 0,
+			--T2Radar = 0,
+			T1Radar = 0,
+			--T3Sonar = 0,
+			--T2Sonar = 0,
+			T1Sonar = 0,
+			T2AirStagingPlatform = 0,
+			T3AADefense = 0,
+			T2AADefense = 0,
+			T1AADefense = 0,
+			T3GroundDefense = 0,
+			T2GroundDefense = 0, 
+			T1GroundDefense = 0, 
+			T3NavalDefense = 0,
+			T2NavalDefense = 0,
+			T1NavalDefense = 0,
+			T2MissileDefense = 0,
+			Wall = 0,
+			
+			-- Experimentals, these usually default to a previous unit if no corresponding experimental exists
+			T4LandExperimental1 = 0,	-- Fatboy, Galactic Colossus Monkeylord, Ythotha
+			T4LandExperimental2 = 0,	-- Scathis
+			T4LandExperimental3 = 0,	-- Megalith
+			T4AirExperimental1 = 0,		-- Czar, Soulripper, Ahwassa
+			T4SeaExperimental1 = 0,		-- Atlantis,
+			T4EconExperimental = 0,		-- Paragon
+			T3RapidArtillery = 0,		-- Aeon Experimental Artillery
+		}
+		
+		self.StructureUpgrades = {
+			T3Resource = 0,
+			T2Resource = 0,
+			T2LandFactory = 0,			
+			T2AirFactory = 0,
+			T2SeaFactory = 0,
+			T3LandFactory = 0,			
+			T3AirFactory = 0,
+			T3SeaFactory = 0,
+			T3ShieldDefense = 0,
+			T3Radar = 0,
+			T2Radar = 0,
+			T3Sonar = 0,
+			T2Sonar = 0,
+		}
+		
+		self.Builders = {}
+	end,
 }
