@@ -8,6 +8,26 @@
 
 local AIUtils = import("/lua/ai/aiutilities.lua")
 
+--- Upvalue scope for performace
+local TableInsert = table.insert
+
+--- Credit to Sorian.
+---@param aiBrain AIBrain
+---@param upgrade string
+---@param has boolean
+---@return boolean
+function BaseCommanderHasUpgrade(aiBrain, upgrade, base, has)
+    local Cmdr = aiBrain:GetListOfUnits(categories.COMMAND, false)
+    for k,v in units do
+        if v:HasEnhancement(upgrade) and has then
+            return true
+        elseif not v:HasEnhancement(upgrade) and not has then
+            return true
+        end
+    end
+    return false
+end
+
 --- Assembles a table of specified owned units in the specified location, and radius
 ---@param aiBrain AIBrain
 ---@param categories | Entity categories
@@ -19,12 +39,101 @@ function GetOwnUnitsAroundPosition(aiBrain, categories, location, radius)
 	local index = aiBrain:GetArmyIndex()
 	local retUnits = {}
 	for _, v in units do
-		if not v.Dead and not v:IsBeingBuilt() and v:GetAIBrain():GetArmyIndex() == index then
-			table.insert(retUnits, v)
+		if not v.Dead and not v:IsBeingBuilt() and v.Brain:GetArmyIndex() == index then
+			TableInsert(retUnits, v)
 		end
 	end
 
 	return retUnits
+end
+
+function NeedStructure(aiBrain, structureType, baseName)
+	local bManager = aiBrain.BaseManagers[baseName]
+	if not bManager then
+		return false
+	end
+	
+	
+end
+
+---@param aiBrain AIBrain
+---@param baseName string
+---@param category EntityCategory
+---@param varName | String or Integer
+---@return boolean
+function NumUnitsLessNearBase(aiBrain, baseName, category, varName)
+	-- Try getting the base from an existing base template
+	local base = aiBrain.BaseManagers[baseName] or aiBrain.BaseTemplates[baseName]
+	
+	-- If no such template exists, try getting it via a PBM build location, if that list exists
+    if not base and aiBrain.PBM.Locations then
+		for Index, Location in aiBrain.PBM.Locations do
+			if baseName == Location.LocationType then
+				base = Location
+				break
+			end
+		end
+    end
+	
+	-- If we couldn't get a valid base, return false
+	if not base then
+		return false
+	end
+	
+	-- Get all allied units near the base, and filter them via a brain comparison (might be better to do an army index comparison?)
+	-- Units being built are also added to this
+    local unitList = aiBrain:GetUnitsAroundPoint(category, (base.Location or base.Position), base.Radius, 'Ally')
+    local count = 0
+    for Index, Unit in unitList do
+        if Unit.Brain == aiBrain then
+            count = count + 1
+        end
+    end
+	
+	-- GPG behaviour for BaseManagers, gotta check the type of base we got and the param
+	-- Things like sACU and total Engineer counts are stored inside "ScenarioInfo.VarTable"
+	local compareVar = ScenarioInfo.VarTable[varName] or varName
+	return count < compareVar
+end
+
+---@param aiBrain AIBrain
+---@param baseName string
+---@param category EntityCategory
+---@param varName | String or Integer
+---@return boolean
+function NumUnitsGreaterOrEqualNearBase(aiBrain, baseName, category, varName)
+	-- Try getting the base from an existing base template
+	local base = aiBrain.BaseManagers[baseName] or aiBrain.BaseTemplates[baseName]
+	
+	-- If no such template exists, try getting it via a PBM build location, if that list exists
+    if not base and aiBrain.PBM.Locations then
+		for Index, Location in aiBrain.PBM.Locations do
+			if baseName == Location.LocationType then
+				base = Location
+				break
+			end
+		end
+    end
+	
+	-- If we couldn't get a valid base, return false
+	if not base then
+		return false
+	end
+	
+	-- Get all allied units near the base, and filter them via a brain comparison (might be better to do an army index comparison?)
+	-- Units being built are also added to this
+    local unitList = aiBrain:GetUnitsAroundPoint(category, (base.Location or base.Position), base.Radius, 'Ally')
+    local count = 0
+    for Index, Unit in unitList do
+        if Unit.Brain == aiBrain then
+            count = count + 1
+        end
+    end
+	
+	-- GPG behaviour for BaseManagers, gotta check the type of base we got and the param
+	-- Things like sACU and total Engineer counts are stored inside "ScenarioInfo.VarTable"
+	local compareVar = ScenarioInfo.VarTable[varName] or varName
+	return count >= compareVar
 end
 
 ---@param aiBrain AIBrain

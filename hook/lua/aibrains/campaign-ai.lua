@@ -20,7 +20,8 @@ AIBrain = Class(CampaignAIBrain) {
 	OnCreateAI = function(self, planName)
 		CampaignAIBrain.OnCreateAI(self, planName)
 		
-		WARN("LOG: AI Plan name: " .. tostring(self.CurrentPlan))
+		-- Initialize the IMAP
+		self:IMAPConfiguration()
 		-- 1 -> Disabled; 2 -> Enabled
 		if ScenarioInfo.Options.CampaignAICheat and ScenarioInfo.Options.CampaignAICheat == 2 then
 			LOG('Campaign AI cheats have been enabled, setting up cheat modifiers for use.')
@@ -80,6 +81,48 @@ AIBrain = Class(CampaignAIBrain) {
 			ScenarioInfo.BuilderTable[self.CurrentPlan] = {Air = {}, Sea = {}, Land = {}, Gate = {}}
 			-- Create a table in the brain that will store the builders proper
 			self.PBM.Platoons = {Air = {}, Sea={}, Land = {}, Gate = {}}
+        end
+    end,
+	
+	--- Adds a new build location
+	--- TODO: Key these according to their actual names, currently they lack any keys to access them, and require a loop to check each ones' LocationType
+    ---@param self CampaignAIBrain
+    ---@param loc Vector
+    ---@param radius number
+    ---@param locType string
+    ---@param useCenterPoint? boolean
+    ---@return boolean
+    PBMAddBuildLocation = function(self, loc, radius, locType, useCenterPoint)
+        if not radius or not loc or not locType then
+            error('*AI ERROR: INVALID BUILD LOCATION FOR PBM', 2)
+            return false
+        end
+        if type(loc) == 'string' then
+            loc = ScenarioUtils.MarkerToPosition(loc)
+        end
+
+        useCenterPoint = useCenterPoint or false
+        local spec = {
+            Location = loc,
+            Radius = radius,
+            LocationType = locType,
+            PrimaryFactories = {Air = nil, Land = nil, Sea = nil, Gate = nil},
+            UseCenterPoint = useCenterPoint,
+        }
+
+        local found = false
+        for num, loc in self.PBM.Locations do
+            if loc.LocationType == spec.LocationType then
+                found = true
+                break
+            end
+        end
+
+        if not found then
+            TableInsert(self.PBM.Locations, spec)
+        else
+            error('*AI  ERROR: Attempting to add a build location with a duplicate name: '..spec.LocationType, 2)
+            return false
         end
     end,
 	
@@ -214,6 +257,48 @@ AIBrain = Class(CampaignAIBrain) {
         end
     end,
 
+	---@param self CampaignAIBrain
+    ---@param factories Unit
+    ---@param primary Unit
+    PBMAssistGivenFactory = function(self, factories, primary)
+        for _, v in factories do
+            if not v.Dead and not (v:IsUnitState('Building') or v:IsUnitState('Upgrading')) then
+                local guarded = v:GetGuardedUnit()
+                if not guarded or guarded.EntityId ~= primary.EntityId then
+                    IssueToUnitClearCommands(v)
+                    IssueFactoryAssist({v}, primary)
+                end
+            end
+        end
+    end,
+	
+	---@param self CampaignAIBrain
+    PBMCheckBusyFactories = function(self)
+        local busyPlat = self:GetPlatoonUniquelyNamed('BusyFactories')
+        if not busyPlat then
+            busyPlat = self:MakePlatoon('', '')
+            busyPlat:UniquelyNamePlatoon('BusyFactories')
+        end
+
+        local poolPlat = self:GetPlatoonUniquelyNamed('ArmyPool')
+        local poolTransfer = {}
+        for _, v in poolPlat:GetPlatoonUnits() do
+            if not v.Dead and EntityCategoryContains(categories.FACTORY - categories.EXTERNALFACTORYUNIT - categories.MOBILE, v) and (v:IsUnitState('Building') or v:IsUnitState('Upgrading')) then
+                TableInsert(poolTransfer, v)
+            end
+        end
+
+        local busyTransfer = {}
+        for _, v in busyPlat:GetPlatoonUnits() do
+            if not v.Dead and (v:IsUnitState('Building') or v:IsUnitState('Upgrading')) then
+                TableInsert(busyTransfer, v)
+            end
+        end
+
+        self:AssignUnitsToPlatoon(poolPlat, busyTransfer, 'Unassigned', 'None')
+        self:AssignUnitsToPlatoon(busyPlat, poolTransfer, 'Unassigned', 'None')
+    end,
+	
 	--- Main building and forming platoon thread for the Platoon Build Manager
     ---@param self CampaignAIBrain
     PlatoonBuildManagerThread = function(self)
@@ -471,6 +556,98 @@ AIBrain = Class(CampaignAIBrain) {
         end
     end,
 	
+	---Set number of units to be built as the number of factories in a location
+    ---@param self CampaignAIBrain
+    ---@param template any
+    ---@param location Vector
+    ---@param pType PlatoonType
+    ---@param factory Unit
+    ---@return table
+    PBMBuildNumFactories = function (self, template, location, pType, factory)
+        local retTemplate = table.deepcopy(template)
+        local assistFacs = factory[1]:GetGuards()
+        TableInsert(assistFacs, factory[1])
+        local facs = {T1 = 0, T2 = 0, T3 = 0}
+        for _, v in assistFacs do
+            if EntityCategoryContains(categories.TECH3 * categories.FACTORY, v) then
+                facs.T3 = facs.T3 + 1
+            elseif EntityCategoryContains(categories.TECH2 * categories.FACTORY, v) then
+                facs.T2 = facs.T2 + 1
+            elseif EntityCategoryContains(categories.FACTORY, v) then
+                facs.T1 = facs.T1 + 1
+            end
+        end
+		
+		-- Example of a template:
+		-- {
+        --     "T1AirBomber2",
+        --     "HuntAI",
+        --     {"uaa0103", -1, 5, "attack", "GrowthFormation"}
+        -- },
+		
+		-- Handle any squads with a specified build quantity
+        local squad = 3
+        while squad <= TableGetn(retTemplate) do
+			local element = retTemplate[squad]
+            if element[2] > 0 then
+                local bp = self:GetUnitBlueprint(element[1])
+                local buildLevel = AIBuildUnits.UnitBuildCheck(bp)
+                local remaining = element[3]
+                while buildLevel <= 3 do
+                    if facs['T'..buildLevel] > 0 then
+                        if facs['T'..buildLevel] < remaining then
+                            remaining = remaining - facs['T'..buildLevel]
+                            facs['T'..buildLevel] = 0
+                            buildLevel = buildLevel + 1
+                        else
+                            facs['T'..buildLevel] = facs['T'..buildLevel] - remaining
+                            buildLevel = 10
+                        end
+                    else
+                        buildLevel = buildLevel + 1
+                    end
+                end
+            end
+            squad = squad + 1
+        end
+
+        -- Handle squads with programatic build quantity
+        squad = 3
+        local remainingIds = {T1 = {}, T2 = {}, T3 = {}}
+        while squad <= TableGetn(retTemplate) do
+            if retTemplate[squad][2] < 0 then
+                TableInsert(remainingIds['T'..AIBuildUnits.UnitBuildCheck(self:GetUnitBlueprint(retTemplate[squad][1])) ], retTemplate[squad][1])
+            end
+            squad = squad + 1
+        end
+        local rTechLevel = 3
+        while rTechLevel >= 1 do
+            for num, unitId in remainingIds['T'..rTechLevel] do
+                for tempRow = 3, TableGetn(retTemplate) do
+                    if retTemplate[tempRow][1] == unitId and retTemplate[tempRow][2] < 0 then
+                        retTemplate[tempRow][3] = 0
+                        for fTechLevel = rTechLevel, 3 do
+                            retTemplate[tempRow][3] = retTemplate[tempRow][3] + (facs['T'..fTechLevel] * math.abs(retTemplate[tempRow][2]))
+                            facs['T'..fTechLevel] = 0
+                        end
+                    end
+                end
+            end
+            rTechLevel = rTechLevel - 1
+        end
+
+        -- Remove any IDs with 0 as a build quantity.
+        for i = 1, TableGetn(retTemplate) do
+            if i >= 3 then
+                if retTemplate[i][3] == 0 then
+                    TableRemove(retTemplate, i)
+                end
+            end
+        end
+
+        return retTemplate
+    end,
+	
 	--- PBM platoon DestroyedCallback type, called when the platoon is either completely killed off (excluding uniquely named ones), or is disbanded
 	---@param self CampaignAIBrain
     ---@param platoon Platoon
@@ -613,6 +790,43 @@ AIBrain = Class(CampaignAIBrain) {
         return Closest and Closest == LocationName
     end,
 	
+	---@param self CampaignAIBrain
+    ---@param location Vector
+    ---@param pType PlatoonType
+    ---@return integer
+    PBMGetNumFactoriesAtLocation = function(self, location, pType)
+        local airFactories = {}
+        local landFactories = {}
+        local seaFactories = {}
+        local gates = {}
+        local factories = self:GetAvailableFactories(location.Location, location.Radius)
+        local numFactories = 0
+        for ek, ev in factories do
+            if EntityCategoryContains(categories.FACTORY * categories.AIR - categories.EXTERNALFACTORYUNIT, ev) then
+                TableInsert(airFactories, ev)
+            elseif EntityCategoryContains(categories.FACTORY * categories.LAND - categories.EXTERNALFACTORYUNIT, ev) then
+                TableInsert(landFactories, ev)
+            elseif EntityCategoryContains(categories.FACTORY * categories.NAVAL - categories.EXTERNALFACTORYUNIT, ev) then
+                TableInsert(seaFactories, ev)
+            elseif EntityCategoryContains(categories.FACTORY * categories.GATE - categories.EXTERNALFACTORYUNIT, ev) then
+                TableInsert(gates, ev)
+            end
+        end
+
+        local retFacs = {}
+        if pType == 'Air' then
+            numFactories = TableGetn(airFactories)
+        elseif pType == 'Land' then
+            numFactories = TableGetn(landFactories)
+        elseif pType == 'Sea' then
+            numFactories = TableGetn(seaFactories)
+        elseif pType == 'Gate' then
+            numFactories = TableGetn(gates)
+        end
+
+        return numFactories
+    end,
+	
 	--- Initializes, or adjusts the IMAP layout for the AI depending on the map size
 	--- The IMAP grid is used by the AI extensively to get basic data on what threats are where, and originates from the engine side, but some things can be messed with on the Lua side
 	--- AIs assign several different threat values for each IMAP grid according to what intel they have
@@ -647,6 +861,30 @@ AIBrain = Class(CampaignAIBrain) {
             self.IMAPConfig.Rings = 0
         end
     end,
+	
+	-----------------------
+	-- OpAI Template Thread
+	-----------------------
+	--- Thread that will update OpAI templates that were set to only generate buildable templates
+	--- Due to primary factories are being grabbed periodically by the brain, and their state can change as the game goes on (destroyed, upgraded, etc.), the templates can become unbuildable
+	--- To fix this, we check if any only-buildable OpAI templates are invalid, and update them as needed via this thread
+	BrainUpdateOpAITemplates = function(self)
+		while self.AllowUpdateTemplates do
+			local OpAITable = self.OpAIs or {}	-- OpAI instances are stored inside the AI brains' "OpAIs" table
+			-- If the OpAI instance was set to generate only buildable templates check if there's a valid primary factory, and if it can't build the current template
+			for index, OpAI in OpAITable do
+				if OpAI.GenerateOnlyBuildableTemplates then
+					local PrimaryFactory = OpAI:GetPrimaryFactory()
+					-- "CanBuildPlatoon()" needs a table of factories
+					if PrimaryFactory and not self:CanBuildPlatoon(OpAI:GetPlatoonTemplate(), {PrimaryFactory}) then
+						OpAI:OverridePlatoonTemplate()
+					end
+				end
+			end
+			
+			WaitSeconds(25)
+		end
+	end,
 
 }
 end

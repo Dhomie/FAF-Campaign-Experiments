@@ -42,7 +42,7 @@ end
 ---@param master string default_master
 ---@return boolean
 function HeavyLandAttackChildAntiAir(aiBrain, master)
-    local counter = ScenarioFramework.AMPlatoonCounter(aiBrain, master..'_AntiAirChildren')
+	local counter = ScenarioFramework.AMPlatoonCounter(aiBrain, master..'_AntiAirChildren')
 	local difficulty = ScenarioInfo.Options.Difficulty or 3
 	
     local num = ScenarioInfo.OSPlatoonCounter[master..'_AntiAirChildren_D' .. difficulty] or 1

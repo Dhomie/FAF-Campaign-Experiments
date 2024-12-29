@@ -88,18 +88,34 @@ end
 ---@param num number
 ---@return boolean
 function NumUnitsLessNearBase(aiBrain, baseName, category, num)
-    if aiBrain.BaseTemplates[baseName].Location == nil then
-        return false
-    else
-        local unitList = aiBrain:GetUnitsAroundPoint(category, aiBrain.BaseTemplates[baseName].Location,aiBrain.BaseTemplates[baseName].Radius, 'Ally')
-        local count = 0
-        for i, unit in unitList do
-            if unit:GetAIBrain() == aiBrain then
-                count = count + 1
-            end
-        end
-		return count < num
+	-- Try getting the base from an existing base template
+	local base = aiBrain.BaseTemplates[baseName].Location
+	
+	-- If no such template exists, try getting it via a PBM build location, if that list exists
+    if not base and aiBrain.PBM.Locations then
+		for Index, Location in aiBrain.PBM.Locations do
+			if baseName == Location.LocationType then
+				base = Location
+				break
+			end
+		end
     end
+	
+	-- If we couldn't get a valid base, return false
+	if not base then
+		return false
+	end
+	
+	-- Get all allied units near the base, and filter them via a brain comparison (might be better to do an army index comparison?)
+	-- Units being built are also added to this
+    local unitList = aiBrain:GetUnitsAroundPoint(category, base.Location, base.Radius, 'Ally')
+    local count = 0
+    for Index, Unit in unitList do
+        if Unit.Brain == aiBrain then
+            count = count + 1
+        end
+    end
+	return count < num
 end
 
 ---@param aiBrain AIBrain
