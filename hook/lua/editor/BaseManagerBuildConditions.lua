@@ -10,6 +10,7 @@ local AIUtils = import("/lua/ai/aiutilities.lua")
 
 --- Upvalue scope for performace
 local TableInsert = table.insert
+local TableEmpty = table.empty
 
 --- Credit to Sorian.
 ---@param aiBrain AIBrain
@@ -144,6 +145,41 @@ function BaseManagerNeedsEngineers(aiBrain, baseName)
 	return bManager and bManager.EngineerQuantity > bManager.CurrentEngineerCount
 end
 
+---@param aiBrain AIBrain
+---@param baseName string
+---@return boolean
+function BaseManagerNeedsSupportACUs(aiBrain, baseName)
+	local bManager = aiBrain.BaseManagers[baseName]
+	return bManager and bManager.SupportACUQuantity > bManager.CurrentSupportACUCount
+end
+
+---@param aiBrain ArmiesTable
+---@param level number
+---@param baseName string
+---@return boolean
+function HighestFactoryLevelGreater(aiBrain, level, baseName)
+    local bManager = aiBrain.BaseManagers[baseName]
+    if not bManager then
+        return false
+    end
+	
+	local basePos = bManager.Position
+    local baseRad = bManager.Radius
+	
+	-- For actually accurate assessment, we gotta check T1 as well, if we couldn't grab any factories, we don't have a factory level to begin with
+    local t3FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH3, basePos, baseRad)
+    local t2FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH2, basePos, baseRad)
+	local t1FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH1, basePos, baseRad)
+    if t3FacList and not TableEmpty(t3FacList) then
+		return level < 3
+    elseif t2FacList and not TableEmpty(t2FacList) then
+        return level < 2
+	elseif t1FacList and not TableEmpty(t1FacList) then
+        return level < 1
+    end
+    return false
+end
+
 ---@param aiBrain ArmiesTable
 ---@param level number
 ---@param baseName string
@@ -154,17 +190,21 @@ function HighestFactoryLevel(aiBrain, level, baseName)
         return false
     end
 	
-	local basePos = bManager:GetPosition()
+	local basePos = bManager.Position
     local baseRad = bManager.Radius
-
+	
+	-- For actually accurate assessment, we gotta check T1 as well, if we couldn't grab any factories, we don't have a factory level to begin with
     local t3FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH3, basePos, baseRad)
     local t2FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH2, basePos, baseRad)
-    if t3FacList and not table.empty(t3FacList) then
+	local t1FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH1, basePos, baseRad)
+    if t3FacList and not TableEmpty(t3FacList) then
 		return level == 3
-    elseif t2FacList and not table.empty(t2FacList) then
+    elseif t2FacList and not TableEmpty(t2FacList) then
         return level == 2
+	elseif t1FacList and not TableEmpty(t1FacList) then
+        return level == 1
     end
-    return true
+    return false
 end
 
 ---@param aiBrain AIBrain
@@ -174,7 +214,7 @@ function UnfinishedBuildingsCheck(aiBrain, baseName)
     local bManager = aiBrain.BaseManagers[baseName]
 	
 	-- Return if the BaseManager doesn't exist, or the list is empty, or all buildings are finished
-    if not bManager or table.empty(bManager.UnfinishedBuildings) then
+    if not bManager or TableEmpty(bManager.UnfinishedBuildings) then
         return false
     end
 
@@ -202,20 +242,23 @@ end
 ---@param aiBrain AIBrain
 ---@param baseName string
 ---@param catTable string
+---@param inverse Bool | Returns the opposite boolean value if specified, in case we want to return FALSE if the categories are being built
 ---@return boolean
-function CategoriesBeingBuilt(aiBrain, baseName, catTable)
+function CategoriesBeingBuilt(aiBrain, baseName, catTable, inverse)
 	local bManager = aiBrain.BaseManagers[baseName]
     if not bManager then
         return false
     end
 
-    local basePos = bManager:GetPosition()
+    local basePos = bManager.Position
     local baseRad = bManager.Radius
     if not (basePos and baseRad) then
         return false
     end
 	
-    --local unitsBuilding = aiBrain:GetListOfUnits(categories.CONSTRUCTION, false) -- This is rather ineffecient, because it returns with ALL construction units on the map
+	-- Default to false
+	local retBool = inverse or false
+	
 	local unitsBuilding = GetOwnUnitsAroundPosition(aiBrain, categories.CONSTRUCTION, basePos, baseRad)
     for unitNum, unit in unitsBuilding do
         if not unit.Dead and unit:IsUnitState('Building') then
@@ -224,16 +267,16 @@ function CategoriesBeingBuilt(aiBrain, baseName, catTable)
                 for catNum, buildeeCat in catTable do
                     local buildCat = ParseEntityCategory(buildeeCat)
                     if EntityCategoryContains(buildCat, buildingUnit) then
-                        --local unitPos = unit:GetPosition()
-                        --if unitPos and VDist2(basePos[1], basePos[3], unitPos[1], unitPos[3]) < baseRad then
-                            return true
-                        --end
+						-- If *inverse* is TRUE, return FALSE, otherwise return TRUE
+                        return not retBool
                     end
                 end
             end
         end
     end
-    return false
+	
+	-- Return with *inverse*
+    return retBool
 end
 
 ---@param aiBrain AIBrain
@@ -247,7 +290,45 @@ function HighestFactoryLevelType(aiBrain, level, baseName, type)
         return false
     end
 	
-	local basePos = bManager:GetPosition()
+	local basePos = bManager.Position
+    local baseRad = bManager.Radius
+
+    local catCheck
+    if type == 'Air' then
+        catCheck = categories.AIR
+    elseif type == 'Land' then
+        catCheck = categories.LAND
+    elseif type == 'Sea' then
+        catCheck = categories.NAVAL
+    end
+	
+	-- For actually accurate assessment, we gotta check T1 as well, if we couldn't grab any factories, we don't have a factory level to begin with
+    local t3FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH3 * catCheck, basePos, baseRad)
+    local t2FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH2 * catCheck, basePos, baseRad)
+	local t1FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH1 * catCheck, basePos, baseRad)
+    if t3FacList and not TableEmpty(t3FacList) then
+		return level == 3
+    elseif t2FacList and not TableEmpty(t2FacList) then
+        return level == 2
+	elseif t1FacList and not TableEmpty(t1FacList) then
+        return level == 1
+    end
+    return false
+end
+
+--- Build Condition used for T1 Air Scouts, so we don't need a builder just for T2 Air Factories
+---@param aiBrain AIBrain
+---@param level number
+---@param baseName string
+---@param type string
+---@return boolean
+function HighestFactoryLevelTypeLessOrEqual(aiBrain, level, baseName, type)
+    local bManager = aiBrain.BaseManagers[baseName]
+    if not bManager then
+        return false
+    end
+	
+	local basePos = bManager.Position
     local baseRad = bManager.Radius
 
     local catCheck
@@ -259,12 +340,16 @@ function HighestFactoryLevelType(aiBrain, level, baseName, type)
         catCheck = categories.NAVAL
     end
 
+	-- For actually accurate assessment, we gotta check T1 as well, if we couldn't grab any factories, we don't have a factory level to begin with
     local t3FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH3 * catCheck, basePos, baseRad)
     local t2FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH2 * catCheck, basePos, baseRad)
-    if t3FacList and not table.empty(t3FacList) then
-        return level == 3
-    elseif t2FacList and not table.empty(t2FacList) then
-        return level == 2
+	local t1FacList = GetOwnUnitsAroundPosition(aiBrain, categories.FACTORY * categories.TECH1 * catCheck, basePos, baseRad)
+    if t3FacList and not TableEmpty(t3FacList) then
+        return level >= 3
+    elseif t2FacList and not TableEmpty(t2FacList) then
+        return level >= 2
+    elseif t1FacList and not TableEmpty(t1FacList) then
+        return level >= 1
     end
     return true
 end
@@ -282,7 +367,7 @@ function FactoryCountAndNeed(aiBrain, techLevel, engQuantity, pType, baseName)
     end
 
     local facCat = ParseEntityCategory('FACTORY * TECH'..techLevel)
-    local facList = GetOwnUnitsAroundPosition(aiBrain, facCat, bManager:GetPosition(), bManager.Radius)
+    local facList = GetOwnUnitsAroundPosition(aiBrain, facCat, bManager.Position, bManager.Radius)
     local typeCount = {Air = 0, Land = 0, Sea = 0, }
     for k, v in facList do
         if EntityCategoryContains(categories.AIR, v) then
@@ -294,7 +379,7 @@ function FactoryCountAndNeed(aiBrain, techLevel, engQuantity, pType, baseName)
         end
     end
 	
-	--LOG("BMBC: Engineer count in " .. tostring(baseName) .. " : " .. tostring(bManager.CurrentEngineerCount) .. " | with EngineersBuilding added: " .. tostring(bManager.CurrentEngineerCount + bManager:GetEngineersBuilding()))
+	--LOG("BMBC: " .. tostring(baseName) .." data | EngineerCount: " .. tostring(bManager.CurrentEngineerCount) .. " | EngineersBuilding : " .. tostring(bManager:GetEngineersBuilding()))
 
     if typeCount[pType] >= typeCount['Air'] and typeCount[pType] >= typeCount['Land'] and typeCount[pType] >= typeCount['Sea'] then
         if typeCount[pType] == engQuantity and bManager.EngineerQuantity >= (bManager.CurrentEngineerCount + bManager:GetEngineersBuilding() + engQuantity) then
@@ -307,6 +392,45 @@ function FactoryCountAndNeed(aiBrain, techLevel, engQuantity, pType, baseName)
     end
 
     return false
+end
+
+---@param aiBrain AIBrain
+---@param sACUQuantity number
+---@param baseName string
+---@return boolean
+function GateCountAndNeed(aiBrain, sACUQuantity, baseName)
+    local bManager = aiBrain.BaseManagers[baseName]
+    if not bManager then
+        return false
+    end
+
+    local GateCategory = ParseEntityCategory('GATE')
+    local GateList = GetOwnUnitsAroundPosition(aiBrain, GateCategory, bManager.Position, bManager.Radius)
+    local GateCount = 0
+    for Index, Gate in GateList do
+		if not Gate.Dead then
+			GateCount = GateCount + 1
+		end
+    end
+	
+	--LOG("BMBC: " .. tostring(baseName) .." data | sACU Count: " .. tostring(bManager.CurrentSupportACUCount) .. " | sACUsBuilding : " .. tostring(bManager:GetSupportACUsBuilding()))
+
+    if GateCount == sACUQuantity and bManager.SupportACUQuantity >= (bManager.CurrentSupportACUCount + bManager:GetSupportACUsBuilding() + sACUQuantity) then
+        return true
+    elseif bManager.SupportACUQuantity - (bManager.CurrentSupportACUCount + bManager:GetSupportACUsBuilding() + sACUQuantity) == 0 and GateCount >= sACUQuantity then
+        return true
+	-- We go up to 3 sACUs being built at a time, not 5 like with Engineers
+    elseif bManager.SupportACUQuantity - (bManager.CurrentSupportACUCount + bManager:GetSupportACUsBuilding() + sACUQuantity) > 0 and sACUQuantity == 3 and GateCount >= 3 then
+        return true
+    end
+
+    return false
+end
+
+---@param aiBrain AIBrain
+---@param platoonData PlatoonData
+function BaseManagerSupportACUsStarted(aiBrain, platoonData)
+    aiBrain.BaseManagers[platoonData.BaseName]:SetSupportACUsBuilding(platoonData.NumBuilding)
 end
 
 ---@param aiBrain AIBrain

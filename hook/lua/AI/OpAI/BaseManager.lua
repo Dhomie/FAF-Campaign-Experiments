@@ -89,29 +89,31 @@ BaseManager = Class(BaseManagerTemplate) {
 		
 		self.MaximumConstructionEngineers = (ScenarioInfo.Options.Difficulty or 3) * 2
 		
+		-- Add needed data to track Support Armored Command Units
+		self.SupportACUQuantity = 1
+		self.CurrentSupportACUCount = 0
+		self.SupportACUsBuilding = 0
+		
 		-- Default to no transports needed
 		self.TransportsNeeded = 0
 		self.TransportsTech = 1
 		
 		-- Commented out unused states
 		self.FunctionalityStates = {
-            --AirAttacks = true,
             AirScouting = false,
             AntiAir = true,
             Artillery = true,
             BuildEngineers = true,
+			BuildSupportACUs = true,
             CounterIntel = true,
-            --EngineerReclaiming = true,
             Engineers = true,
             ExpansionBases = false,
             Fabrication = true,
             GroundDefense = true,
             Intel = true,
-            --LandAttacks = true,
             LandScouting = false,
             Nukes = false,
             Patrolling = true,
-            --SeaAttacks = true,
             Shields = true,
             TMLs = true,
             Torpedos = true,
@@ -190,29 +192,91 @@ BaseManager = Class(BaseManagerTemplate) {
     end,
 
 	--- Overwrite to return -1 --> building can be rebuilt indefinitely
+	---@param self BaseManager
+    ---@param buildingType string
     BuildingCounterDifficultyDefault = function(self, buildingType)
         return -1
     end,
 	
-	--- Retrieves the amount of engineers that are building
-	--- This variable is not updated if the Engineers are killed BEFORE they could be formed into platoons (ie.: during roloff, construction)
-	--- I've added a failsafe check that will actually check if there are Engineers being built
+	
+	--- Retrieves the Engineer blueprint ID of the given tech level
+	--- In case of modded factions and units, the retrival will default to the T1 UEF Engineer
+	---@param self BaseManager
+    ---@param techLevel Integer
+	---@return String
+	GetEngineerBlueprintID = function (self, techLevel)
+		-- Default to T1 UEF starting prefix
+		local FactionIndex = self.AIBrain:GetFactionIndex()
+		local IDPrefix = 'ue'
+		local IDNumbers = '0105'
+		
+		if FactionIndex == 2 then
+			IDPrefix = 'ua'
+		elseif FactionIndex == 3 then
+			IDPrefix 'ur'
+		elseif FactionIndex == 4 then
+			IDPrefix = 'xs'
+		end
+		
+		if techLevel == 2 then
+			IDNumbers = '0208'
+		elseif techlevel == 3 then
+			IDNumbers = '0309'
+		end
+		
+		-- Combine the 2 together and return it
+		return IDPrefix .. IDNumbers
+	end,
+	
+	--- Add to the sACU count, useful when gifting the base sACUs.
+    ---@param self BaseManager  # An instance of the BaseManager class
+    ---@param num integer       # Amount to add to the engineer count.
+    AddCurrentSupportACU = function(self, num)
+        self.CurrentSupportACUCount = self.CurrentSupportACUCount + (num or 1)
+    end,
+
+    --- Subtract from the sACU count
+    ---@param self BaseManager  # An instance of the BaseManager class
+    ---@param num integer       # Amount to subtract from the engineer count.
+    SubtractCurrentSupportACU = function(self, num)
+        self.CurrentSupportACUCount = self.CurrentSupportACUCount - (num or 1)
+    end,
+
+    --- Retrieve the sACU count
     ---@param self BaseManager      # An instance of the BaseManager class
-    ---@return integer              # Amount of engineers that are building
-    GetEngineersBuilding = function(self)
-		-- If there are Engineering units being built, return with the proper number, otherwise there are obviously none being built, return 0
-		--if import(BMBC).CategoriesBeingBuilt(self.AIBrain, self.BaseName, {'ENGINEER'}) then
-			return self.EngineersBuilding
-		--else
-			--return 0
-		--end
+    ---@return integer              # Number of active engineers
+    GetCurrentSupportACUCount = function(self)
+        return self.CurrentSupportACUCount
+    end,
+
+    --- Retrieve the maximum number of sACUs, the base manager won't build more engineers than this
+    ---@param self BaseManager      # An instance of the BaseManager class
+    ---@return integer              # Maximum number of engineers for this base manager
+    GetMaximumSupportACUs = function(self)
+        return self.SupportACUQuantity
     end,
 	
-	--- Adds or subtracts from the number of engineers that are building
+	--- Retrieves the amount of sACUs that are building
+	--- This variable is normally not updated if the sACUs are killed BEFORE they could be formed into platoons (ie.: during roloff, construction)
+    ---@param self BaseManager      # An instance of the BaseManager class
+    ---@return integer              # Amount of engineers that are building
+    GetSupportACUsBuilding = function(self)		
+		return self.SupportACUsBuilding
+    end,
+	
+	--- Adds or subtracts from the number of sACUs that are building
     ---@param self BaseManager      # An instance of the BaseManager class
     ---@param count integer         # Amount to add or subtract
-    SetEngineersBuilding = function(self, count)
-		self.EngineersBuilding = self.EngineersBuilding + count
+    SetSupportACUsBuilding = function(self, count)
+		self.SupportACUsBuilding = self.SupportACUsBuilding + count
+    end,
+	
+	--- Defines the number of support command units this base manager should maintain
+    ---@param self BaseManager      # An instance of the BaseManager class
+    ---@param count number          # Number of support command units
+    SetSupportACUCount = function(self, count)
+		self.SupportACUQuantity = count
+        ScenarioInfo.VarTable[self.BaseName .. '_sACUNumber'] = count
     end,
 	
 	---@param self BaseManager
@@ -232,6 +296,15 @@ BaseManager = Class(BaseManagerTemplate) {
 
         return false
     end,
+	
+	--- Checks if the base has higher tier factories compared to param techLevel
+	--- Can return false positives if unit restrictions are applied
+	---@param self BaseManager
+    ---@param unitType String
+    ---@return boolean
+	CanUpgradeEngineers = function(self, techLevel)
+		
+	end,
 	
 	--- Determines if a specific unit needs upgrades, returns name of upgrade if needed
     --- Works with up to 3-level enhancement paths
@@ -295,13 +368,44 @@ BaseManager = Class(BaseManagerTemplate) {
         return false
     end,
 	
-	--- Failsafe thread that will periodically loop through existing units that have been converted to lower tech level units so they can be built (ie. HQ factories)
+	--- General purpose failsafe thread that will periodically perform certain actions
+	--- It will periodically loop through existing units that have been converted to lower tech level units so they can be built (ie. HQ factories)
 	--- If their unit IDs don't match the one set in the save.lua file, a failsafe function will be called to check if they are idle, so an upgrade can be started
+	--- Also contains a check that will periodically reduce the amount of Engineers and sACUs being built by 1 if we can't detect any queued one
+	--- This is related to a bug where if the Engineers are killed during rolloff (before their platoons are formed), the AI won't reduce the EngineersBuilding attribute
+	--- You can practically cheese a base out of its Engineers via this over time, as the base will think it has Engineers under construction, while that is not the case
 	---@param self BaseManager
     UpgradeCheckThread = function(self)
         local armyIndex = self.AIBrain:GetArmyIndex()
         while true do
+		
             if self.Active then
+				-- Engineer count failsafe
+				local Factories = self:GetAllBaseFactories()
+				local BuildOrdersExist = nil
+		
+				-- Check if we have at least 1 busy factory with an engineering unit
+				for Index, Factory in Factories do
+					if not Factory.Dead and Factory:GetNumBuildOrders(categories.ENGINEER) > 0 then
+						BuildOrdersExist = true
+						break
+					end
+				end
+	
+				-- If there are no busy factories, and the variable is at least 1, reduce the variable by 1
+				-- We can safely assume there are no engineers/sACUs under construction
+				if not BuildOrdersExist then
+					if self.EngineersBuilding > 0 then
+						self.EngineersBuilding = self.EngineersBuilding - 1
+					end
+					
+					if self.SupportACUsBuilding > 0 then
+						self.SupportACUsBuilding = self.SupportACUsBuilding - 1
+					end
+				end
+				
+			
+				-- Upgrade failsafe loop
                 for k, v in self.UpgradeTable do
                     local unit = ScenarioInfo.UnitNames[armyIndex][v.UnitName]
 					-- Check if the structure exists, and needs to upgrade
@@ -311,7 +415,7 @@ BaseManager = Class(BaseManagerTemplate) {
                     end
                 end
             end
-            WaitSeconds(15)
+            WaitSeconds(10)
         end
     end,
 	
@@ -419,6 +523,161 @@ BaseManager = Class(BaseManagerTemplate) {
         end,
     },
 	
+	BuildFunctions = {
+        BuildEngineers = function(self, val)
+            self.FunctionalityStates.BuildEngineers = val
+        end,
+		
+		BuildSupportACUs = function(self, val)
+			self.FunctionalityStates.BuildSupportACUs = val
+		end,
+
+        BuildAntiAir = function(self, val)
+            self.BuildTable['T1AADefense'] = val
+            self.BuildTable['T2AADefense'] = val
+            self.BuildTable['T3AADefense'] = val
+        end,
+
+        BuildGroundDefense = function(self, val)
+            self.BuildTable['T1GroundDefense'] = val
+            self.BuildTable['T2GroundDefense'] = val
+            self.BuildTable['T3GroundDefense'] = val
+        end,
+
+        BuildTorpedo = function(self, val)
+            self.BuildTable['T1NavalDefense'] = val
+            self.BuildTable['T2NavalDefense'] = val
+            self.BuildTable['T3NavalDefense'] = val
+        end,
+
+        BuildAirFactories = function(self, val)
+            self.BuildTable['T1AirFactory'] = val
+            self.BuildTable['T2AirFactory'] = val
+            self.BuildTable['T3AirFactory'] = val
+        end,
+
+        BuildLandFactories = function(self, val)
+            self.BuildTable['T1LandFactory'] = val
+            self.BuildTable['T2LandFactory'] = val
+            self.BuildTable['T3LandFactory'] = val
+        end,
+
+        BuildSeaFactories = function(self, val)
+            self.BuildTable['T1Seafactory'] = val
+            self.BuildTable['T2Seafactory'] = val
+            self.BuildTable['T3Seafactory'] = val
+        end,
+
+        BuildFactories = function(self, val)
+            self.BuildFunctions['BuildAirFactories'](self, val)
+            self.BuildFunctions['BuildSeaFactories'](self, val)
+            self.BuildFunctions['BuildLandFactories'](self, val)
+        end,
+
+        BuildMissileDefense = function(self, val)
+            self.BuildTable['T1StrategicMissileDefense'] = val
+            self.BuildTable['T2StrategicMissileDefense'] = val
+            self.BuildTable['T3StrategicMissileDefense'] = val
+            self.BuildTable['T1MissileDefense'] = val
+            self.BuildTable['T2MissileDefense'] = val
+            self.BuildTable['T3MissileDefense'] = val
+        end,
+
+        BuildShields = function(self, val)
+            self.BuildTable['T3ShieldDefense'] = val
+            self.BuildTable['T2ShieldDefense'] = val
+            self.BuildTable['T1ShieldDefense'] = val
+        end,
+
+        BuildArtillery = function(self, val)
+            self.BuildTable['T3Artillery'] = val
+            self.BuildTable['T2Artillery'] = val
+            self.BuildTable['T1Artillery'] = val
+        end,
+
+        BuildExperimentals = function(self, val)
+            self.BuildTable['T4LandExperimental1'] = val
+            self.BuildTable['T4LandExperimental2'] = val
+            self.BuildTable['T4AirExperimental1'] = val
+            self.BuildTable['T4SeaExperimental1'] = val
+        end,
+
+        BuildWalls = function(self, val)
+            self.BuildTable['Wall'] = val
+        end,
+
+        BuildDefenses = function(self, val)
+            self.BuildFunctions['BuildAntiAir'](self, val)
+            self.BuildFunctions['BuildGroundDefense'](self, val)
+            self.BuildFunctions['BuildTorpedo'](self, val)
+            self.BuildFunctions['BuildArtillery'](self, val)
+            self.BuildFunctions['BuildShields'](self, val)
+            self.BuildFunctions['BuildWalls'](self, val)
+        end,
+
+        BuildJammers = function(self, val)
+            self.BuildTable['T1RadarJammer'] = val
+            self.BuildTable['T2RadarJammer'] = val
+            self.BuildTable['T3RadarJammer'] = val
+        end,
+
+        BuildRadar = function(self, val)
+            self.BuildTable['T3Radar'] = val
+            self.BuildTable['T2Radar'] = val
+            self.BuildTable['T1Radar'] = val
+        end,
+
+        BuildSonar = function(self, val)
+            self.BuildTable['T3Sonar'] = val
+            self.BuildTable['T2Sonar'] = val
+            self.BuildTable['T1Sonar'] = val
+        end,
+
+        BuildIntel = function(self, val)
+            self.BuildFunctions['BuildSonar'](self, val)
+            self.BuildFunctions['BuildRadar'](self, val)
+            self.BuildFunctions['BuildJammers'](self, val)
+        end,
+
+        BuildMissiles = function(self, val)
+            self.BuildTable['T3StrategicMissile'] = val
+            self.BuildTable['T2StrategicMissile'] = val
+            self.BuildTable['T1StrategicMissile'] = val
+        end,
+
+        BuildFabrication = function(self, val)
+            self.BuildTable['T3MassCreation'] = val
+            self.BuildTable['T2MassCreation'] = val
+            self.BuildTable['T1MassCreation'] = val
+        end,
+
+        BuildAirStaging = function(self, val)
+            self.BuildTable['T1AirStagingPlatform'] = val
+            self.BuildTable['T2AirStagingPlatform'] = val
+            self.BuildTable['T3AirStagingPlatform'] = val
+        end,
+
+        BuildMassExtraction = function(self, val)
+            self.BuildTable['T1Resource'] = val
+            self.BuildTable['T2Resource'] = val
+            self.BuildTable['T3Resource'] = val
+        end,
+
+        BuildEnergyProduction = function(self, val)
+            self.BuildTable['T1EnergyProduction'] = val
+            self.BuildTable['T2EnergyProduction'] = val
+            self.BuildTable['T3EnergyProduction'] = val
+            self.BuildTable['T1HydroCarbon'] = val
+            self.BuildTable['T2HydroCarbon'] = val
+            self.BuildTable['T3HydroCarbon'] = val
+        end,
+
+        BuildStorage = function(self, val)
+            self.BuildTable['MassStorage'] = val
+            self.BuildTable['EnergyStorage'] = val
+        end,
+    },
+	
 	---@param self BaseManager
 	---@param val number
 	SetTransportsNeeded = function(self, val)
@@ -439,7 +698,7 @@ BaseManager = Class(BaseManagerTemplate) {
             defaultBuilder = {
                 BuilderName = 'T' .. i .. 'BaseManaqer_EngineersWork_' .. self.BaseName,
                 PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i),
-                Priority = 5,
+                Priority = 600 * i,
                 PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerEngineerPlatoonSplit' },
                 BuildConditions = {
                     { BMBC, 'BaseManagerNeedsEngineers', { self.BaseName } },
@@ -448,6 +707,9 @@ BaseManager = Class(BaseManagerTemplate) {
                 PlatoonData = {
                     BaseName = self.BaseName,
                 },
+				PlatoonAddFunctions = {
+					{ BMPT, 'EngineerUpgradeBehavior' }
+				},
                 PlatoonType = 'Land',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
                 RequiresConstruction = false,
                 LocationType = self.BaseName,
@@ -481,42 +743,10 @@ BaseManager = Class(BaseManagerTemplate) {
                         },
                         PlatoonBuildCallbacks = { { BMBC, 'BaseManagerEngineersStarted' }, },
                         InstanceCount = 1,
-                        BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
+                        BuildTimeOut = 60, -- Increased timeout from 5 to 60, to avoid Engineers cluttering up in bases
                     }
                     self.AIBrain:PBMAddPlatoon(defaultBuilder)
                 end
-            end
-        end
-		
-		-- Failsaife Transfer platoons - Engineers that are built by the base, lower priority
-		-- Engineer counts are only processed after platoons are formed, if they are killed right as they roll off of factories, it can mess up the actual engineer counts
-		-- These are single-unit, failsafe templates that ignore engineers that are already being built, and just check if we have less engineers than desired
-        for i = 1, 3 do
-            for num, pType in { 'Air', 'Land', 'Sea' } do
-                defaultBuilder = {
-                    BuilderName = 'Failsafe_T' .. i .. '_BaseManagerEngineerDisband_' .. pType .. '_' .. self.BaseName,
-                    PlatoonAIPlan = 'DisbandAI',
-                    PlatoonTemplate = self:CreateEngineerPlatoonTemplate(i, 1),
-                    Priority = 400 * i,
-                    PlatoonType = pType,
-                    RequiresConstruction = true,
-                    LocationType = self.BaseName,
-                    PlatoonData = {
-						NumBuilding = 1,
-                        BaseName = self.BaseName,
-                    },
-                    BuildConditions = {
-						{ BMBC, 'BaseManagerNeedsEngineers', { self.BaseName } },
-                        { BMBC, 'BaseEngineersEnabled', { self.BaseName } },
-                        { BMBC, 'BaseBuildingEngineers', { self.BaseName } },
-                        { BMBC, 'HighestFactoryLevel', { i, self.BaseName } },
-                        { BMBC, 'BaseActive', { self.BaseName } },
-                    },
-                    PlatoonBuildCallbacks = { { BMBC, 'BaseManagerEngineersStarted' }, },
-                    InstanceCount = 1,
-                    BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
-                }
-                self.AIBrain:PBMAddPlatoon(defaultBuilder)
             end
         end
     end,
@@ -533,9 +763,8 @@ BaseManager = Class(BaseManagerTemplate) {
             LocationType = self.BaseName,
             PlatoonAddFunctions = {
 				{ BMPT, 'EnableCDRAutoOvercharge'}, -- Enables auto-overcharge for ACUs
-                { BMPT, 'UnitUpgradeBehavior' },
             },
-            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerSingleEngineerPlatoon' },
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerSingleACUPlatoon' },
             BuildConditions = {
                 { BMBC, 'BaseActive', { self.BaseName } },
             },
@@ -551,17 +780,15 @@ BaseManager = Class(BaseManagerTemplate) {
         -- sCDR Build
         local defaultBuilder = {
             BuilderName = 'BaseManager_sCDRPlatoon_' .. self.BaseName,
-            PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(),
+            PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(3),
             Priority = 5,
             PlatoonType = 'Gate',	-- Don't use 'Any', these don't need to be built, and we don't need to add this builder to ALL 3 major factory types
             RequiresConstruction = false,
             LocationType = self.BaseName,
-            PlatoonAddFunctions = {
-                { BMPT, 'UnitUpgradeBehavior' },
-            },
-            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerSingleEngineerPlatoon' },
+            PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerSupportACUPlatoonSplit' },
             BuildConditions = {
                 { BMBC, 'BaseActive', { self.BaseName } },
+				{ BMBC, 'BaseManagerNeedsSupportACUs', { self.BaseName } },
             },
             PlatoonData = {
                 BaseName = self.BaseName,
@@ -570,24 +797,33 @@ BaseManager = Class(BaseManagerTemplate) {
         self.AIBrain:PBMAddPlatoon(defaultBuilder)
 
         -- Disband platoon
-        defaultBuilder = {
-            BuilderName = 'BaseManager_sACUDisband_' .. self.BaseName,
-            PlatoonAIPlan = 'DisbandAI',
-            PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(),
-            Priority = 500,
-            PlatoonType = 'Gate',
-            RequiresConstruction = true,
-            LocationType = self.BaseName,
-            BuildConditions = {
-                { BMBC, 'BaseEngineersEnabled', { self.BaseName } },
-                { BMBC, 'NumUnitsLessNearBase', { self.BaseName, ParseEntityCategory('SUBCOMMANDER'), self.BaseName .. '_sACUNumber' } },
-                { BMBC, 'BaseActive', { self.BaseName } },
-            },
-            BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
-        }
-        self.AIBrain:PBMAddPlatoon(defaultBuilder)
+		for i = 1, 3 do
+			defaultBuilder = {
+				BuilderName = 'BaseManager_sCDRDisband_' .. i .. '_' .. self.BaseName,
+				PlatoonAIPlan = 'DisbandAI',
+				PlatoonTemplate = self:CreateSupportCommanderPlatoonTemplate(i),
+				Priority = 500 * i,
+				PlatoonType = 'Gate',
+				RequiresConstruction = true,
+				LocationType = self.BaseName,
+				BuildConditions = {
+					{ BMBC, 'BaseEngineersEnabled', { self.BaseName } },
+					{ BMBC, 'BaseActive', { self.BaseName } },
+					{ BMBC, 'BaseManagerFunctionalityEnabled', { self.BaseName, 'BuildSupportACUs' } },
+					{ BMBC, 'GateCountAndNeed', { i, self.BaseName } },
+					{ BMBC, 'BaseActive', { self.BaseName } },
+				},
+				BuildTimeOut = 5, -- Timeout really fast because they dont need to really finish
+				PlatoonData = {
+                    NumBuilding = i,
+                    BaseName = self.BaseName,
+                },
+				PlatoonBuildCallbacks = { { BMBC, 'BaseManagerSupportACUsStarted' }, },
+			}
+			self.AIBrain:PBMAddPlatoon(defaultBuilder)
+		end
     end,
-	
+
 	---@param self BaseManager
     LoadDefaultScoutingPlatoons = function(self)
         -- Land Scouts
@@ -616,7 +852,7 @@ BaseManager = Class(BaseManagerTemplate) {
             Priority = 500,
             PlatoonAIFunction = { '/lua/ai/opai/BaseManagerPlatoonThreads.lua', 'BaseManagerScoutingAI' },
             BuildConditions = {
-                { BMBC, 'HighestFactoryLevelType', { 1, self.BaseName, 'Air' } },
+                { BMBC, 'HighestFactoryLevelTypeLessOrEqual', { 2, self.BaseName, 'Air' } },	-- Build them if we either have up to T2, or T1 Air Factories
                 { BMBC, 'AirScoutingEnabled', { self.BaseName, } },
                 { BMBC, 'BaseActive', { self.BaseName } },
             },
@@ -649,8 +885,8 @@ BaseManager = Class(BaseManagerTemplate) {
         }
         self.AIBrain:PBMAddPlatoon(defaultBuilder)
     end,
-	
-	 ---@param self BaseManager
+
+	---@param self BaseManager
     LoadDefaultBaseTMLs = function(self)
         local defaultBuilder = {
             BuilderName = 'BaseManager_TMLPlatoon_' .. self.BaseName,
@@ -740,6 +976,21 @@ BaseManager = Class(BaseManagerTemplate) {
         }
     end,
 	
+	---@param self BaseManager
+    ---@return any
+    CreateSupportCommanderPlatoonTemplate = function(self, platoonSize)
+		local size = platoonSize or 1
+        local faction = self.AIBrain:GetFactionIndex()
+        local template = {
+            'CommanderTemplate',
+            'NoPlan',
+            { 'uel0301', 1, size, 'Support', 'None' },
+        }
+        template = ScenarioUtils.FactionConvert(template, faction)
+
+        return template
+    end,
+	
 	--- Note: When the platoon template's individual unit number's required minimum is *-1*, the PBM will automatically build as many factories are capable of building the unit in a base.
 	--- In the below case, if the base has 6 Land Factories, the PBM will build 6 T1 Land Scounts
 	---@param self BaseManager
@@ -755,7 +1006,6 @@ BaseManager = Class(BaseManagerTemplate) {
 
         return template
     end,
-	
 	
 	--- Note: When the platoon template's individual unit number's required minimum is *-1*, the PBM will automatically build as many factories are capable of building the unit in a base.
 	--- In the below case, if the base has 6 T3 Air Factories, the PBM will build 6 T3 Air Scouts
@@ -803,6 +1053,7 @@ BaseManager = Class(BaseManagerTemplate) {
     end,
 }
 
+--- WIP, a different approach for the default Base Manager module, it's meant to build structures dynamically as per specified amounts, with no static base template defined
 AdvancedBaseManager = Class(BaseManager) {
 	Create = function(self)
 		

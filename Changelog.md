@@ -1,4 +1,11 @@
 Changelog
+#v20 (23.03.2025)
+- Fixed BaseManager producing excessive amounts of Engineers in some cases
+- Implemented full BaseManager support for custom Support ACU counts, however all share the same single enhancement specifications per base
+- Various code overhauls to support the above feature, ACUs and sACUs use their own platoon thread
+- Initial iteration of updated UI and Sim code to improve the Campaign UI ping buttons *(lua\SimPingGroup.lua, lua\ui\game\objectives2.lua, lua\UserSync.lua)*
+- For the list of improvements, see the documentation in *lua\SimPingGroup.lua*
+
 #v19 (29.12.2024)
 - Fixed BaseManager engineering units sitting idle if they move out of their bases' radius, they will only assist applicable units inside their bases.
 - Further fixes, misc. adjustments.

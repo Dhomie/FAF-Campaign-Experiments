@@ -86,13 +86,13 @@ AttackManager = ClassSimple {
     Initialize = function(self, attackDataTable)
         self:AddDefaultPlatoons(attackDataTable.AttackConditions)
         if attackDataTable then
-            self.AttackCheckInterval = attackDataTable.AttackCheckInterval or 7
+            self.AttackCheckInterval = attackDataTable.AttackCheckInterval or 10
             if attackDataTable.Platoons then
                 self:AddPlatoonsTable(attackDataTable.Platoons)
             end
         end
 		
-		self.AttackCheckInterval = self.AttackCheckInterval or 7
+		self.AttackCheckInterval = self.AttackCheckInterval or 10
         self['AttackManagerState'] = 'ACTIVE'
         self['AttackManagerThread'] = self:ForkThread(self.AttackManagerThread)
     end,

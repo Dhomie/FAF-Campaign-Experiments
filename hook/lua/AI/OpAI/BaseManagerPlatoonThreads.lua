@@ -33,13 +33,13 @@ function EnableCDRAutoOvercharge(platoon)
 	
 	-- Loop through each existing unit (if we received a platoon of multiple units), checks if its an ACU, and enable the auto-overcharge option
 	for index, unit in Units do
-		if not unit.Dead and EntityCategoryContains(categories.COMMAND, unit) then
+		if not unit.Dead and unit.SetAutoOvercharge then
 			unit:SetAutoOvercharge(true)
 		end
 	end
 end
 
---- Split the platoon into single unit platoons
+--- Split the Engineer platoon into single unit platoons
 ---@param platoon Platoon
 function BaseManagerEngineerPlatoonSplit(platoon)
     local aiBrain = platoon:GetBrain()
@@ -83,6 +83,60 @@ function BaseManagerEngineerPlatoonSplit(platoon)
         end
     end
     aiBrain:DisbandPlatoon(platoon)
+end
+
+--- NOTE: Only use this for sACUs,
+--- Split the sACU platoon into single unit platoons
+---@param platoon Platoon
+function BaseManagerSupportACUPlatoonSplit(platoon)
+    local aiBrain = platoon:GetBrain()
+    local units = platoon:GetPlatoonUnits()
+    local baseName = platoon.PlatoonData.BaseName
+    local bManager = aiBrain.BaseManagers[baseName]
+    if not bManager then
+        aiBrain:DisbandPlatoon(platoon)
+		return
+    end
+    for _, v in units do
+        if not v.Dead then
+            -- Make sure current base manager isn't at capacity of sACUs
+            if EntityCategoryContains(categories.SUBCOMMANDER, v) and bManager.SupportACUQuantity > bManager.CurrentSupportACUCount then
+                if bManager.EngineerBuildRateBuff then
+                    Buff.ApplyBuff(v, bManager.EngineerBuildRateBuff)
+                end
+
+                local SACUPlatoon = aiBrain:MakePlatoon('', '')
+                aiBrain:AssignUnitsToPlatoon(SACUPlatoon, {v}, 'Support', 'None')
+                SACUPlatoon:SetPlatoonData(platoon.PlatoonData)
+                v.BaseName = baseName
+                SACUPlatoon:ForkAIThread(BaseManagerSingleACUPlatoon)
+
+                bManager:AddCurrentSupportACU()
+
+                -- Only add death callback if it hasn't been set yet
+                if not v.Subtracted then
+                    TriggerFile.CreateUnitDestroyedTrigger(BaseManagerSingleSupportACUDestroyed, v)
+                end
+
+                -- If the base is building sACUs, subtract one from the amount being built
+                if bManager:GetSupportACUsBuilding() > 0 then
+                    bManager:SetSupportACUsBuilding(-1)
+                end
+            end
+        end
+    end
+    aiBrain:DisbandPlatoon(platoon)
+end
+
+--- Death callback when sACUs die to decrease counter
+---@param unit Unit
+function BaseManagerSingleSupportACUDestroyed(unit)
+    if not unit.Subtracted then
+        unit.Subtracted = true
+        local aiBrain = unit:GetAIBrain()
+        local bManager = aiBrain.BaseManagers[unit.BaseName]
+        bManager:SubtractCurrentSupportACU()
+    end
 end
 
 --- Callback function when an engineering unit starts building something
@@ -270,11 +324,10 @@ function BaseManagerSingleEngineerPlatoon(platoon)
     platoon.PlatoonData.DontDisband = true
 
     local aiBrain = platoon:GetBrain()
+	local unit = platoon:GetPlatoonUnits()[1]
+
     local baseName = platoon.PlatoonData.BaseName
     local bManager = aiBrain.BaseManagers[baseName]
-    local unit = platoon:GetPlatoonUnits()[1]
-    local canPermanentAssist = EntityCategoryContains(categories.ENGINEER - (categories.COMMAND + categories.SUBCOMMANDER), unit)
-    local commandUnit = EntityCategoryContains(categories.COMMAND + categories.SUBCOMMANDER, unit)
     unit.BaseName = baseName
 	
 	-- Add build callbacks for these Engineers
@@ -288,15 +341,15 @@ function BaseManagerSingleEngineerPlatoon(platoon)
     while aiBrain:PlatoonExists(platoon) do
         if BMBC.BaseEngineersEnabled(aiBrain, baseName) then
             -- Move to expansion base
-            if not commandUnit and BMBC.ExpansionBasesEnabled(aiBrain, baseName) and BMBC.ExpansionBasesNeedEngineers(aiBrain, baseName) then
+            if BMBC.ExpansionBasesEnabled(aiBrain, baseName) and BMBC.ExpansionBasesNeedEngineers(aiBrain, baseName) then
                 ExpansionEngineer(platoon)
 				
 			-- Assist a conditional builder under construction
-            elseif canPermanentAssist and bManager.ConditionalBuildData.Unit and not bManager.ConditionalBuildData.Unit.Dead and bManager.ConditionalBuildData.NeedsMoreBuilders() then
+            elseif bManager.ConditionalBuildData.Unit and not bManager.ConditionalBuildData.Unit.Dead and bManager.ConditionalBuildData.NeedsMoreBuilders() then
                 AssistConditionalBuild(platoon)
 
             -- If we can do a conditional build here, then do it
-            elseif canPermanentAssist and CanConditionalBuild(platoon) then
+            elseif CanConditionalBuild(platoon) then
                 DoConditionalBuild(platoon)
 
             -- Try to build buildings
@@ -307,7 +360,7 @@ function BaseManagerSingleEngineerPlatoon(platoon)
                 bManager:RemoveConstructionEngineer(unit)
 
             -- Permanent Assist - Assist factories until the unit dies
-            elseif canPermanentAssist and bManager:NeedPermanentFactoryAssist() then
+            elseif bManager:NeedPermanentFactoryAssist() then
                 bManager:IncrementPermanentAssisting()
                 PermanentFactoryAssist(platoon)
 
@@ -324,7 +377,72 @@ function BaseManagerSingleEngineerPlatoon(platoon)
                 BaseManagerEngineerPatrol(platoon)
             end
         end
-        WaitTicks(80)
+        WaitTicks(100)
+    end
+end
+
+--- Main function for Base Manager Command Units
+---@param platoon Platoon
+function BaseManagerSingleACUPlatoon(platoon)
+    platoon.PlatoonData.DontDisband = true
+
+    local aiBrain = platoon:GetBrain()
+	local unit = platoon:GetPlatoonUnits()[1]
+	local UpgradeName
+
+    local baseName = platoon.PlatoonData.BaseName
+    local bManager = aiBrain.BaseManagers[baseName]
+    unit.BaseName = baseName
+	
+	-- Determine the type of unit
+    local unitType = false
+    if EntityCategoryContains(categories.COMMAND, unit) then
+        unitType = 'DefaultACU'
+    elseif EntityCategoryContains(categories.SUBCOMMANDER, unit) then
+        unitType = 'DefaultSACU'
+    end
+	
+	-- Cache the platoon data on the unit in case other functions make use of it
+	if platoon.PlatoonData and not unit.CDRData then
+        unit.CDRData = platoon.PlatoonData
+    end
+	
+	-- Add build callbacks for these Engineers
+	if not unit.AddedBuildCallback then
+		-- The universal function doesn't work for OnStartBuild, unit.unitBeingBuilt is only accessable after the DoUnitCallback has been executed
+		unit:AddOnStartBuildCallback(EngineerOnStartBuild)
+		unit:AddUnitCallback(EngineerOnFailedToBuild, "OnFailedToBuild")
+		unit.AddedBuildCallback = true
+	end
+	
+    while aiBrain:PlatoonExists(platoon) do
+        if BMBC.BaseEngineersEnabled(aiBrain, baseName) then
+			UpgradeName = bManager:UnitNeedsUpgrade(unit, unitType)
+			-- Do any set upgrades first and foremost
+			if UpgradeName then
+				UnitUpgradeThread(platoon, UpgradeName)
+
+            -- Try to build buildings
+            elseif BMBC.NeedAnyStructure(aiBrain, baseName) and bManager:GetConstructionEngineerCount() < bManager:GetConstructionEngineerMaximum() then
+                bManager:AddConstructionEngineer(unit)
+                TriggerFile.CreateUnitDestroyedTrigger(ConstructionUnitDeath, unit)
+                BaseManagerEngineerThread(platoon)
+                bManager:RemoveConstructionEngineer(unit)
+
+            -- Finish unfinished buildings
+            elseif BMBC.UnfinishedBuildingsCheck(aiBrain, baseName) then
+                BuildUnfinishedStructures(platoon)
+
+            -- Try to assist
+            elseif BMBC.CategoriesBeingBuilt(aiBrain, baseName, {'MOBILE LAND', 'ALLUNITS' }) or(bManager:ConstructionNeedsAssister()) then
+                BaseManagerAssistThread(platoon)
+
+            -- Try to patrol
+            elseif BMBC.BasePatrollingEnabled(aiBrain, baseName) and not unit:IsUnitState('Patrolling') then
+                BaseManagerEngineerPatrol(platoon)
+            end
+        end
+        WaitTicks(100)
     end
 end
 
@@ -766,19 +884,6 @@ function BaseManagerAssistThread(platoon)
     end
 end
 
----@param brain AIBrain
----@param platoon Platoon
-function ExpansionPlatoonDestroyed(brain, platoon)
-    local aiBrain = platoon:GetBrain()
-    local bManager = aiBrain.BaseManagers[platoon.PlatoonData.BaseName]
-
-    for num, eData in bManager.ExpansionBaseData do
-        if eData.BaseName == platoon.PlatoonData.ExpansionBase then
-            eData.IncomingEngineers = eData.IncomingEngineers - 1
-        end
-    end
-end
-
 --- Engineer build structures
 ---@param platoon Platoon
 function BaseManagerEngineerThread(platoon)
@@ -995,7 +1100,7 @@ function BaseManagerTMLAI(platoon)
 
     while aiBrain:PlatoonExists(platoon) do
         if BMBC.TMLsEnabled(aiBrain, baseName) then
-            local target = false
+            local target = nil
             while unit:GetTacticalSiloAmmoCount() < 1 or not target do
 				target = target or platoon:FindPrioritizedUnit('Attack', 'Enemy', true, unitPosition, maxRadius)
 				
@@ -1204,9 +1309,10 @@ function GetScoutingPath(unit)
     local possiblePoints = {}
 
     local startX = mapInfo[1]
-        local startY = mapInfo[2]
-        local currX = startX
-        -- Create a table of possible points by increasing x and y vals
+    local startY = mapInfo[2]
+    local currX = startX
+	
+    -- Create a table of possible points by increasing x and y vals
     while currX < mapInfo[3] do
         local currY = startY
         while currY < mapInfo[4] do
@@ -1296,70 +1402,90 @@ function ScoutingAI(platoon)
     end
 end
 
----@param platoon Platoon
-function UnitUpgradeBehavior(platoon)
-    local unit = platoon:GetPlatoonUnits()[1]
-	
-	-- Always update the CDR data, because the command unit is assigned to a new platoon when we do the upgrade, and the current param platoon is thus destroyed, leading to a nil reference
-	if platoon.PlatoonData and not unit.CDRData then
-        unit.CDRData = platoon.PlatoonData
-    end
-	
-	-- Add the upgrade thread only once, since it'll run until the command unit is dead
-    if not unit.UpgradeThread then
-        unit.UpgradeThread = unit:ForkThread(UnitUpgradeThread)
-    end
+---@param unit Unit
+function UnitUpgradeThread(platoon, UpgradeName)
+	local unit = platoon:GetPlatoonUnits()[1]
+    local aiBrain = platoon:GetBrain()
+
+	-- Update the BM as needed
+	local BaseName = unit.CDRData.BaseName
+	local bManager = aiBrain.BaseManagers[BaseName]
+
+    if bManager and UpgradeName and not unit.Dead and aiBrain:PlatoonExists(platoon) and not unit:IsUnitState('Building') then
+        -- Remove the unit from the builders list
+        if bManager:IsConstructionUnit(unit) then
+            bManager:RemoveConstructionEngineer(unit)
+        end
+
+        local order = {
+            TaskName = "EnhanceTask",
+            Enhancement = UpgradeName
+        }
+        IssueStop({unit})
+        IssueToUnitClearCommands(unit)
+        IssueScript({unit}, order)
+
+        repeat
+            WaitTicks(15)
+            if unit.Dead or not aiBrain:PlatoonExists(platoon) then
+                return
+            end
+        until unit:IsIdleState()
+    else
+		WARN("AI WARNING: Couldn't upgrade Command Unit type for base: " .. tostring(BaseName))
+	end
 end
 
+--- Sets up the thread and necessary data for the Engineer platoon to upgrade when higher tier ones can be built
+---@param platoon Platoon
+function EngineerUpgradeBehavior(platoon)
+	for Index, Unit in platoon:GetPlatoonUnits() do
+		if not Unit.Dead then
+			-- Always update the Engineer data, in case the Engineer is reassigned for whatever reason
+			if platoon.PlatoonData then
+				Unit.EngineerData = table.deepcopy(platoon.PlatoonData)
+			end
+	
+			-- Add the upgrade thread only once, since it'll run until the Engineer is dead
+			if not Unit.UpgradeThread then
+				Unit.UpgradeThread = Unit:ForkThread(EngineerUpgradeThread)
+			end
+		end
+	end
+end
+
+--- Main thread for BM Engineers that will self-destruct them if the BM can build higher tier Engineers
+--- The name is misleading, however the intent is really to replace lower tier Engineers with higher tier ones
 ---@param unit Unit
-function UnitUpgradeThread(unit)
-    local aiBrain = unit:GetAIBrain()
-	-- Local reference for performance
+---@param unit Unit
+function EngineerUpgradeThread(unit)
+	-- Locals for performance
+    local aiBrain = unit.Brain
 	local BaseManagers = aiBrain.BaseManagers
+	local TechLevel = nil
 
-    -- Determine the type of unit
-    local unitType = false
-    if EntityCategoryContains(categories.COMMAND, unit) then
-        unitType = 'DefaultACU'
-    elseif EntityCategoryContains(categories.SUBCOMMANDER, unit) then
-        unitType = 'DefaultSACU'
-    end
-
+    -- Determine the tier of the unit, if it's not T1 or T2, terminate the thread
+    if EntityCategoryContains(categories.TECH1, unit) then
+        TechLevel = 1
+    elseif EntityCategoryContains(categories.TECH2, unit) then
+        TechLevel = 2
+    else
+		return
+	end
+	
     while not unit.Dead do
 		-- Update the BM as needed
-		local bManager = BaseManagers[unit.CDRData.BaseName]
+		local BaseName = unit.EngineerData.BaseName
+		local bManager = BaseManagers[BaseName]
+		-- Self-destruct if we can build higher tier Engineers, and the current Engineer platoon is not building anything
         if bManager then
-            local upgradeName = bManager:UnitNeedsUpgrade(unit, unitType)
-			
-			-- TODO: Add an economy check here so we can use this thread for updating in non-BM bases
-            if upgradeName and not unit:IsUnitState('Building') then
-                -- Remove the unit from the builders list
-                if bManager:IsConstructionUnit(unit) then
-                    bManager:RemoveConstructionEngineer(unit)
-                end
-
-                local platoon = aiBrain:MakePlatoon('', '')
-                aiBrain:AssignUnitsToPlatoon(platoon, {unit}, 'support', 'none')
-
-                local order = {
-                    TaskName = "EnhanceTask",
-                    Enhancement = upgradeName
-                }
-                IssueStop({unit})
-                IssueToUnitClearCommands(unit)
-                IssueScript({unit}, order)
-
-                repeat
-                    WaitTicks(15)
-                    if unit.Dead then
-                        return
-                    end
-                until unit:IsIdleState()
-                aiBrain:DisbandPlatoon(platoon)
+            if BMBC.HighestFactoryLevelGreater(aiBrain, TechLevel, BaseName) and not unit:IsUnitState('Building') then
+                unit:Kill()
+				return
             end
         else
-			WARN("No BaseManager detected for: " .. tostring(aiBrain.Name) .. ", for base: " .. tostring(unit.CDRData.BaseName))
+			WARN("No BaseManager detected for: " .. tostring(aiBrain.Name) .. ", for base: " .. tostring(BaseName))
 		end
-        WaitTicks(50)
+		WaitTicks(15)
     end
 end
