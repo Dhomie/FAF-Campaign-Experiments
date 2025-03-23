@@ -27,6 +27,7 @@
 local PingGroups = {}
 local idNum = 1
 local TableInsert = table.insert
+local TableRemove = table.remove
 
 --- Creates the Ping Group, inserts it into the Sync table, and return the instance, see the above documentation for more detailed description
 ---@param name String | UI button name that appears on the tooltip
@@ -102,7 +103,7 @@ function AddPingGroup(name, blueprintID, type, description)
 	Sync.UpdatePingGroups = Sync.UpdatePingGroups or {}
     idNum = idNum + 1
 	-- Insert it into the Sync table
-    table.insert(Sync.AddPingGroups, {ID = PingGroup._id, Name = name, BlueprintID = blueprintID, description = description, Type = type, Active = true})
+    TableInsert(Sync.AddPingGroups, {ID = PingGroup._id, Name = name, BlueprintID = blueprintID, description = description, Type = type, Active = true})
 	
 	-- Insert it into the local table
     PingGroups[PingGroup._id] = PingGroup
@@ -142,6 +143,6 @@ function OnPostLoadThread()
 
     Sync.AddPingGroups = Sync.AddPingGroups or {}
     for _, PingGroup in PingGroups do
-        table.insert(Sync.AddPingGroups, {ID = PingGroup._id, Name = PingGroup.Name, BlueprintID = PingGroup.BlueprintID, description = PingGroup.Description, Type = PingGroup.Type, Active = PingGroup.Active})
+        TableInsert(Sync.AddPingGroups, {ID = PingGroup._id, Name = PingGroup.Name, BlueprintID = PingGroup.BlueprintID, description = PingGroup.Description, Type = PingGroup.Type, Active = PingGroup.Active})
     end
 end
