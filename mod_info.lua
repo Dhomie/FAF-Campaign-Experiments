@@ -1,6 +1,6 @@
 name = "Coop AI Adjustments"
-uid = "coop_ai_mod_v19"
-version = 19
+uid = "coop_ai_mod_v20"
+version = 20
 copyright = "MIT License"
 description = "Campaign AI fixes, adjustments, additions, and QoL changes. In case you experience bugs, you can notify me via the Coop Discord."
 author = "Dhomie"

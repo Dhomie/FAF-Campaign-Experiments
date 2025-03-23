@@ -1,3 +1,104 @@
+---InitializeScenarioArmies
+function InitializeScenarioArmies()
+    -- globals to locals
+    local import = import
+    local GetArmyBrain = GetArmyBrain
+    local SetArmyEconomy = SetArmyEconomy
+    local StringStartsWith = StringStartsWith
+    local SetArmyFactionIndex = SetArmyFactionIndex
+    local SetArmyColorIndex = SetArmyColorIndex
+    local SetArmyAIPersonality = SetArmyAIPersonality
+    local CreateInitialArmyGroup = CreateInitialArmyGroup
+    local CreatePlatoons = CreatePlatoons
+    local CreateWreckageUnit = CreateWreckageUnit
+    local SetAllianceOneWay = SetAllianceOneWay
+    local MathClamp = math.clamp
+    local LoadArmyPBMBuilders = LoadArmyPBMBuilders
+
+    local armySetups = ScenarioInfo.ArmySetup
+    local scenarioArmies = Scenario.Armies
+    local tblArmy = ListArmies()
+    local shouldCreateInitial = ShouldCreateInitialArmyUnits()
+    local factionCount = table.getsize(import("/lua/factions.lua").Factions)
+
+    ScenarioInfo.CampaignMode = true
+    Sync.CampaignMode = true
+    import("/lua/sim/simuistate.lua").IsCampaign(true)
+
+    local armies = {}
+    for i, name in tblArmy do
+        armies[name] = i
+    end
+
+    local tblGroups = {}
+
+    for _, strArmy in tblArmy do
+        local tblData = scenarioArmies[strArmy]
+
+        tblGroups[strArmy] = {}
+
+        if tblData then
+            local setup = armySetups[strArmy]
+            local brain = GetArmyBrain(strArmy)
+
+            local econ = tblData.Economy
+            SetArmyEconomy(strArmy, econ.mass, econ.energy)
+
+            local faction = tblData.faction
+            if faction ~= nil then
+                if setup.Human or StringStartsWith(strArmy, "Player") then
+                    local factionIndex = MathClamp(setup.Faction, 1, factionCount)
+                    SetArmyFactionIndex(strArmy, factionIndex - 1)
+                else
+                    local factionIndex = MathClamp(faction, 0, factionCount)
+                    SetArmyFactionIndex(strArmy, factionIndex)
+                    brain:SetCurrentPlan()
+                end
+            end
+
+            local color = tblData.color
+            if color ~= nil and not brain.Human then
+                SetArmyColorIndex(strArmy, color)
+            end
+
+            local personality = tblData.personality
+            if personality ~= nil then
+                SetArmyAIPersonality(strArmy, personality)
+            end
+
+            local cdr
+            if shouldCreateInitial then
+                tblGroups[strArmy], cdr = CreateInitialArmyGroup(strArmy)
+            end
+
+            local wreckageGroup = FindUnitGroup("WRECKAGE", tblData.Units)
+            if wreckageGroup then
+                local _, tblResult = CreatePlatoons(strArmy, wreckageGroup)
+                for _, unit in tblResult do
+                    CreateWreckageUnit(unit)
+                end
+            end
+
+            ----[ eemerson                                                         ]--
+            ----[ Override alliances with custom alliance settings                 ]--
+            local alliances = tblData.Alliances
+            if alliances ~= nil then
+                for with, state in alliances do
+                    if armies[with] and strArmy ~= with then
+                        SetAllianceOneWay(strArmy, with, state)
+                    end
+                end
+            end
+
+            brain:InitializePlatoonBuildManager()
+            brain.CDR = cdr
+            LoadArmyPBMBuilders(strArmy)
+        end
+    end
+
+    return tblGroups
+end
+
 ---@param buildName string
 ---@param strArmy string
 ---@param builderData table
