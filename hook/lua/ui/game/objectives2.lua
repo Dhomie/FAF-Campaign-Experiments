@@ -663,7 +663,7 @@ function AddPingGroups(groupData, onload)
 			local modeData = {
 				name = "RULEUCC_Script",
 				Cursor = cursor,
-				pingtype = Data.Type,
+				pingtype = Data.Type or "alert",
 				groupID = Data.ID,
                 Active = Data.Active,	-- Set via the Sim, if you want the UI to change it, you'll need a Sim callback, as only the bool value is communicated to the UI
                 OriginArmy = GetFocusArmy()	-- Get the army who sent the ping, because FAF coop supports up to 4 players, unlike in SCFA's single-player campaign

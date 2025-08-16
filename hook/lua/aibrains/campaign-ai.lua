@@ -254,7 +254,33 @@ AIBrain = Class(CampaignAIBrain) {
             end
         end
     end,
-
+	
+	--- Function to clear all the platoon lists so you can feed it a bunch more.
+    --- - formPlatoons - Gives you the option to form all the platoons in the list before its cleaned up so that you don't have units hanging around.
+    ---@param self CampaignAIBrain
+    ---@param formPlatoons? Platoon
+    PBMClearPlatoonList = function(self, formPlatoons)
+        if formPlatoons then
+            for _, v in self.PBM.PlatoonTypes do
+                self:PBMFormPlatoons(false, v)
+            end
+        end
+        self.PBM.NeedSort['Air'] = false
+        self.PBM.NeedSort['Land'] = false
+        self.PBM.NeedSort['Sea'] = false
+        self.PBM.NeedSort['Gate'] = false
+        self.HasPlatoonList = false
+        self.PBM.Platoons = {
+            Air = {},
+            Land = {},
+            Sea = {},
+            Gate = {},
+        }
+		
+		-- Reset this table as well
+		ScenarioInfo.BuilderTable[self.CurrentPlan] = {Air = {}, Sea = {}, Land = {}, Gate = {}}
+    end,
+	
 	---@param self CampaignAIBrain
     ---@param factories Unit
     ---@param primary Unit
@@ -295,6 +321,43 @@ AIBrain = Class(CampaignAIBrain) {
 
         self:AssignUnitsToPlatoon(poolPlat, busyTransfer, 'Unassigned', 'None')
         self:AssignUnitsToPlatoon(busyPlat, poolTransfer, 'Unassigned', 'None')
+    end,
+	
+	---@param self CampaignAIBrain
+    ---@param builderData table
+    ---@return boolean
+    PBMHandleAvailable = function(self, builder)
+        if not builder.PlatoonHandles then
+			WARN("*AI DEBUG: No PlatoonHandles set for builder - " .. tostring(builderData.BuilderName))
+			WARN("Data on faulty builder: " .. repr(builder))
+            return false
+        end
+        for Index, Handle in builder.PlatoonHandles do
+            if not Handle then
+                return true
+            end
+        end
+        return false
+    end,
+	
+	---@param self CampaignAIBrain
+    ---@param builder Unit
+    ---@return boolean
+    PBMSetHandleBuilding = function(self, builder)
+        if not builder.PlatoonHandles then
+			WARN("Data on faulty builder: " .. repr(builder))
+            error('*AI DEBUG: No PlatoonHandles for builder - ' .. tostring(builder.BuilderName))
+            return false
+        end
+        for k, v in builder.PlatoonHandles do
+            if not v then
+                builder.PlatoonHandles[k] = 'BUILDING'
+                return true
+            end
+        end
+        error('*AI DEBUG: No handle spot empty! - ' .. tostring(builder.BuilderName))
+
+        return false
     end,
 	
 	--- Main building and forming platoon thread for the Platoon Build Manager
@@ -357,19 +420,20 @@ AIBrain = Class(CampaignAIBrain) {
                                 local guards = PrimaryFactory:GetGuards()
                                 if guards and not TableEmpty(guards) then
                                     for kg, vg in guards do
+										if numBuildOrders > 0 then
+                                            break
+                                        end
+										
                                         numBuildOrders = numBuildOrders + vg:GetNumBuildOrders(categories.ALLUNITS)
                                         if numBuildOrders == 0 and vg:IsUnitState('Building') then
                                             numBuildOrders = 1
-                                        end
-                                        if numBuildOrders > 0 then
-                                            break
                                         end
                                     end
                                 end
                             end
                             if numBuildOrders and numBuildOrders == 0 then
-                                local possibleTemplates = {}
-                                local priorityLevel = false
+                                local PossibleBuilders = {}
+                                local priorityLevel = nil
                                 -- Now go through the platoon templates and see which ones we can build.
                                 for index, builder in platoonList[typev] do
                                     -- Don't try to build things that are higher pri than 0
@@ -387,19 +451,21 @@ AIBrain = Class(CampaignAIBrain) {
                                         if factories and not TableEmpty(factories) and self:PBMCheckBuildConditions(builder) then
                                             priorityLevel = builder.Priority
                                             for i = 1, self:PBMNumHandlesAvailable(builder) do
-                                                TableInsert(possibleTemplates, {Builder = builder, Index = index})
+                                                TableInsert(PossibleBuilders, {Builder = builder, Index = index})
                                             end
                                         end
                                     end
                                 end
                                 if priorityLevel then
-                                    local builderData = TableRandom(possibleTemplates)
-                                    local Builder = builderData.Builder
-                                    local Index = builderData.Index
+                                    local BuilderData = TableRandom(PossibleBuilders)
+                                    local Builder = BuilderData.Builder
+                                    local Index = BuilderData.Index
                                     local suggestedFactories = {v.PrimaryFactories[typev]}
                                     local factories = self:CanBuildPlatoon(Builder.PlatoonTemplate, suggestedFactories)
 									
-									if factories and not TableEmpty(factories) then
+									-- TODO: Find out how the fuck an invalid builder (nil) can pass through here, that occurs in UEF M6 where PBMClearPlatoonList has been called
+									-- For now check if the Builder isn't nil
+									if factories and not TableEmpty(factories) then --and Builder then
 									-- This is an altered version of the platoon template, so we gotta cache it on the builder, so we can form it later
 										Builder.BuildTemplate = self:PBMBuildNumFactories(Builder.PlatoonTemplate, v, typev, factories)
 										local template = Builder.BuildTemplate
@@ -410,7 +476,10 @@ AIBrain = Class(CampaignAIBrain) {
 										local ptnSize = personality:GetPlatoonSize()
 										-- Finally, build the platoon.
 										self:BuildPlatoon(template, factories, ptnSize)
-										self:PBMSetHandleBuilding(self.PBM.Platoons[typev][Index])
+										-- All the debug stuff isn't triggered, so the indexing might be the issue after a full cleanup
+										--self:PBMSetHandleBuilding(self.PBM.Platoons[typev][Index])
+										-- We set direct references, so we can just outright use the builder reference
+										self:PBMSetHandleBuilding(Builder)
 										if Builder.GenerateTimeOut then
 											Builder.BuildTimeOut = self:PBMGenerateTimeOut(Builder, factories, v, typev)
 										else
@@ -428,7 +497,8 @@ AIBrain = Class(CampaignAIBrain) {
                         end
                     end
                 end
-                WaitTicks(1)
+				-- Disabled, pending testing whether this messes up the brain when PBMClearPlatoonList is called
+                --WaitTicks(1)
             end
             -- Do it all over again in 10 seconds.
             WaitSeconds(self.PBM.BuildCheckInterval)
