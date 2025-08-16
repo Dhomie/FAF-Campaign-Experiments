@@ -1,4 +1,8 @@
 Changelog
+#v21 (16.08.2025)
+- Temporary fix to the UI announcement system breaking the game which was caused by a recent FAF patch
+- Probably other misc. changes
+
 #v20 (23.03.2025)
 - Fixed BaseManager producing excessive amounts of Engineers in some cases
 - Implemented full BaseManager support for custom Support ACU counts, however all share the same single enhancement specifications per base
